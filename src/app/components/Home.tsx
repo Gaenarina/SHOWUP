@@ -61,20 +61,18 @@ export function Home() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#566F2F' }}>
-              ShowUp
-            </h1>
-            <p className="text-gray-600">신뢰 기반 예약 플랫폼</p>
+            <div className="flex flex-col gap-1">
+              <span
+                className="text-sm font-medium"
+                style={{ color: '#718952' }}
+              >
+                신뢰 기반 예약 플랫폼
+              </span>
+              <h1 className="showup-logo mb-2">
+                ShowUp
+              </h1>
+            </div>
           </div>
-          <Link to="/seller/reservations">
-            <button
-              className="px-4 py-2 rounded-lg flex items-center gap-2 border-2"
-              style={{ borderColor: '#566F2F', color: '#566F2F' }}
-            >
-              <Store size={18} />
-              <span className="text-sm font-medium">판매자</span>
-            </button>
-          </Link>
         </div>
       </div>
 
@@ -124,7 +122,11 @@ export function Home() {
           </p>
         ) : (
           filteredStores.map((store) => (
-            <Link key={store.id} to={`/store/${store.id}`}>
+            <Link
+              key={store.id}
+              to={`/store/${store.id}`}
+              className="block"
+            >
               <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-semibold">{store.name}</h3>

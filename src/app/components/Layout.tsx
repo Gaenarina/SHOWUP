@@ -3,7 +3,7 @@ import { BottomNav } from "./BottomNav";
 
 export function Layout() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#FAF8F0' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fffdf7' }}>
       <main className="flex-1 pb-20">
         <Outlet />
       </main>

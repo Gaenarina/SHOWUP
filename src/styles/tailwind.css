@@ -1,4 +1,15 @@
-@import 'tailwindcss' source(none);
-@source '../**/*.{js,ts,jsx,tsx}';
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@import 'tw-animate-css';
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}

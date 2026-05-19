@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   User,
   Award,
@@ -15,6 +15,11 @@ import {
 
 export function MyPage() {
   const [walletConnected] = useState(true);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
 
   // Mock user data
   const userData = {
@@ -193,10 +198,12 @@ export function MyPage() {
 
       {/* Logout Button */}
       <button
-        className="w-full bg-white rounded-lg p-4 shadow-sm flex items-center justify-center gap-2 text-red-600 font-medium"
+        type="button"
+        onClick={handleLogout}
+        className="w-full bg-white rounded-lg p-4 shadow-sm flex items-center gap-3 text-red-600"
       >
         <LogOut size={20} />
-        로그아웃
+        <span className="font-medium">로그아웃</span>
       </button>
     </div>
   );

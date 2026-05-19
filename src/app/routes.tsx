@@ -9,8 +9,13 @@ import { Reservations } from "./components/Reservations";
 import { Notifications } from "./components/Notifications";
 import { MyPage } from "./components/MyPage";
 import { SellerReservations } from "./components/SellerReservations";
+import { Login } from "./components/Login";
 
 export const router = createBrowserRouter([
+  {
+    path: "/login",
+    Component: Login,
+  },
   {
     path: "/",
     Component: Layout,

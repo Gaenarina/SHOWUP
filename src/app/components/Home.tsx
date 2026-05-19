@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Search, MapPin, Store } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 
 interface Store {
   id: string;
@@ -52,6 +52,7 @@ export function Home() {
     const matchesSearch =
       searchQuery === "" ||
       store.name.toLowerCase().includes(searchQuery.toLowerCase());
+
     return matchesRegion && matchesSearch;
   });
 
@@ -59,19 +60,34 @@ export function Home() {
     <div className="min-h-screen p-4 pb-20">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex justify-between items-start mb-2 gap-4">
           <div>
             <div className="flex flex-col gap-1">
               <span
                 className="text-sm font-medium"
-                style={{ color: '#718952' }}
+                style={{ color: "#718952" }}
               >
                 신뢰 기반 예약 플랫폼
               </span>
-              <h1 className="showup-logo mb-2">
-                ShowUp
-              </h1>
+
+              <h1 className="showup-logo mb-2">ShowUp</h1>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <Link to="/login">
+              <button
+                type="button"
+                className="px-3 py-2 rounded-lg border text-sm font-medium whitespace-nowrap"
+                style={{
+                  borderColor: "#566F2F",
+                  color: "#566F2F",
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
+                로그인
+              </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -82,12 +98,15 @@ export function Home() {
           {regions.map((r) => (
             <button
               key={r}
+              type="button"
               onClick={() => setRegion(r)}
               className="px-4 py-2 rounded-full whitespace-nowrap transition-colors"
               style={{
-                backgroundColor: region === r ? '#566F2F' : 'white',
-                color: region === r ? 'white' : '#566F2F',
-                border: `1px solid ${region === r ? '#566F2F' : '#D1D5DB'}`,
+                backgroundColor: region === r ? "#566F2F" : "white",
+                color: region === r ? "white" : "#566F2F",
+                border: `1px solid ${
+                  region === r ? "#566F2F" : "#D1D5DB"
+                }`,
               }}
             >
               {r}
@@ -103,13 +122,14 @@ export function Home() {
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
             size={20}
           />
+
           <input
             type="text"
             placeholder="카페, 스터디룸, 음식점 검색..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2"
-            style={{ '--tw-ring-color': '#566F2F' } as React.CSSProperties}
+            style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
           />
         </div>
       </div>
@@ -130,10 +150,14 @@ export function Home() {
               <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-semibold">{store.name}</h3>
+
                   {store.available ? (
                     <span
                       className="text-sm px-2 py-1 rounded"
-                      style={{ backgroundColor: '#E8F5E9', color: '#2E7D32' }}
+                      style={{
+                        backgroundColor: "#E8F5E9",
+                        color: "#2E7D32",
+                      }}
                     >
                       예약 가능
                     </span>
@@ -143,17 +167,27 @@ export function Home() {
                     </span>
                   )}
                 </div>
+
                 <div className="flex items-center text-gray-600 text-sm mb-2">
                   <MapPin size={16} className="mr-1" />
                   {store.address}
                 </div>
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">
-                    기본 보증금: <span className="font-semibold" style={{ color: '#D97706' }}>{store.baseDeposit}</span>
+                    기본 보증금:{" "}
+                    <span
+                      className="font-semibold"
+                      style={{ color: "#D97706" }}
+                    >
+                      {store.baseDeposit}
+                    </span>
                   </span>
+
                   <button
+                    type="button"
                     className="px-4 py-2 rounded-lg text-white text-sm font-medium"
-                    style={{ backgroundColor: '#566F2F' }}
+                    style={{ backgroundColor: "#566F2F" }}
                   >
                     예약하기
                   </button>

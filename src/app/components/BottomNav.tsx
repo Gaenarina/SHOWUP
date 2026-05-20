@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Home, Bell, User } from "lucide-react";
+import { Home, Bell, User, CalendarCheck } from "lucide-react";
 
 export function BottomNav() {
   const location = useLocation();
@@ -12,6 +12,7 @@ export function BottomNav() {
 
   const navItems = [
     { path: "/", icon: Home, label: "홈" },
+    { path: "/reservations", icon: CalendarCheck, label: "예약관리" },
     { path: "/notifications", icon: Bell, label: "알림" },
     { path: "/mypage", icon: User, label: "마이페이지" },
   ];
@@ -22,6 +23,7 @@ export function BottomNav() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
+
           return (
             <Link
               key={item.path}
@@ -30,11 +32,12 @@ export function BottomNav() {
             >
               <Icon
                 size={24}
-                style={{ color: active ? '#566F2F' : '#9CA3AF' }}
+                style={{ color: active ? "#566F2F" : "#9CA3AF" }}
               />
+
               <span
                 className="text-xs mt-1"
-                style={{ color: active ? '#566F2F' : '#9CA3AF' }}
+                style={{ color: active ? "#566F2F" : "#9CA3AF" }}
               >
                 {item.label}
               </span>

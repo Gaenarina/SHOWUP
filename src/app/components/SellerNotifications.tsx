@@ -1,41 +1,48 @@
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
-import { Bell, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { Bell, CheckCircle, AlertCircle, Store } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
-import { subscribeConsumerReservations } from "../../services/reservationService";
+import { getUserProfile } from "../../services/authService";
+import { subscribeSellerReservations } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
 
-type AppNotification = {
+type SellerNotification = {
   id: string;
   reservationId: string;
-  type: "booking_confirmed" | "booking_cancelled" | "reminder" | "noshow";
+  type: "new_reservation" | "attendance_waiting" | "noshow";
   title: string;
   message: string;
-  timestamp: Date;
+  time: string;
   read: boolean;
 };
 
-const getStorageKey = (uid: string) => `showup-read-notifications-${uid}`;
+const getStorageKey = (uid: string) => `showup-read-seller-notifications-${uid}`;
 
 const getDateValue = (value: any) => {
   if (value?.toDate) return value.toDate();
   return new Date(value);
 };
 
-const getReservationDateText = (reservation: Reservation) => {
-  return `${format(getDateValue(reservation.date), "yyyy년 M월 d일", {
-    locale: ko,
-  })} ${reservation.time}`;
+const getRelativeTime = (date: Date) => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 1000 / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMinutes < 1) return "방금 전";
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  if (diffDays === 1) return "어제";
+  return `${diffDays}일 전`;
 };
 
-const buildNotifications = (
+const buildSellerNotifications = (
   reservations: Reservation[],
   readIds: string[]
-): AppNotification[] => {
-  const result: AppNotification[] = [];
+): SellerNotification[] => {
+  const result: SellerNotification[] = [];
 
   reservations.forEach((reservation) => {
     const status = String(reservation.status);
@@ -43,45 +50,30 @@ const buildNotifications = (
       (reservation as any).createdAt ?? reservation.date
     );
 
-    if (status === "pending" || status === "confirmed") {
+    if (status === "pending") {
       result.push({
-        id: `created-${reservation.id}`,
+        id: `new-${reservation.id}`,
         reservationId: reservation.id,
-        type: "booking_confirmed",
-        title: "예약 생성",
-        message: `${reservation.storeName} 예약이 생성되었습니다. (${getReservationDateText(
-          reservation
-        )})`,
-        timestamp: createdAt,
-        read: readIds.includes(`created-${reservation.id}`),
+        type: "new_reservation",
+        title: "새 예약 요청",
+        message: `${reservation.consumerName}님이 ${reservation.storeName} 예약을 요청했습니다.`,
+        time: getRelativeTime(createdAt),
+        read: readIds.includes(`new-${reservation.id}`),
       });
     }
 
     if (
-      reservation.verificationEnabled &&
-      !reservation.consumerVerified &&
-      (status === "pending" || status === "confirmed")
+      (status === "pending" || status === "confirmed") &&
+      !reservation.sellerVerified
     ) {
       result.push({
-        id: `verify-${reservation.id}`,
+        id: `attendance-${reservation.id}`,
         reservationId: reservation.id,
-        type: "reminder",
-        title: "참석 인증 필요",
-        message: `${reservation.storeName} 예약의 인증 버튼이 활성화되었습니다. 참석 인증을 완료해주세요.`,
-        timestamp: new Date(),
-        read: readIds.includes(`verify-${reservation.id}`),
-      });
-    }
-
-    if (status === "completed" || status === "verified") {
-      result.push({
-        id: `completed-${reservation.id}`,
-        reservationId: reservation.id,
-        type: "booking_confirmed",
-        title: "예약 완료",
-        message: `${reservation.storeName} 예약이 완료되었습니다.`,
-        timestamp: createdAt,
-        read: readIds.includes(`completed-${reservation.id}`),
+        type: "attendance_waiting",
+        title: "참석 확인 활성화 필요",
+        message: `${reservation.consumerName}님의 예약 인증 버튼 활성화가 필요합니다.`,
+        time: getRelativeTime(createdAt),
+        read: readIds.includes(`attendance-${reservation.id}`),
       });
     }
 
@@ -90,71 +82,70 @@ const buildNotifications = (
         id: `noshow-${reservation.id}`,
         reservationId: reservation.id,
         type: "noshow",
-        title: "노쇼 처리",
-        message: `${reservation.storeName} 예약이 노쇼 처리되었습니다. 보증금 ${Number(
-          reservation.deposit ?? 0
-        ).toFixed(3)} ETH가 차감됩니다.`,
-        timestamp: createdAt,
+        title: "노쇼 처리 완료",
+        message: `${reservation.consumerName}님의 예약이 노쇼 처리되었습니다.`,
+        time: getRelativeTime(createdAt),
         read: readIds.includes(`noshow-${reservation.id}`),
-      });
-    }
-
-    if (status === "cancelled") {
-      result.push({
-        id: `cancelled-${reservation.id}`,
-        reservationId: reservation.id,
-        type: "booking_cancelled",
-        title: "예약 취소",
-        message: `${reservation.storeName} 예약이 취소되었습니다.`,
-        timestamp: createdAt,
-        read: readIds.includes(`cancelled-${reservation.id}`),
       });
     }
   });
 
-  return result.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  return result;
 };
 
-export function Notifications() {
+export function SellerNotifications() {
   const navigate = useNavigate();
 
   const [uid, setUid] = useState("");
+  const [isSeller, setIsSeller] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const notifications = buildNotifications(reservations, readNotificationIds);
-  const unreadCount = notifications.filter((notification) => !notification.read)
-    .length;
+  const notifications = buildSellerNotifications(
+    reservations,
+    readNotificationIds
+  );
+
+  const unreadCount = notifications.filter((item) => !item.read).length;
 
   useEffect(() => {
     let unsubscribeReservations: (() => void) | undefined;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (unsubscribeReservations) {
         unsubscribeReservations();
       }
 
       if (!user) {
         setUid("");
+        setIsSeller(false);
         setReservations([]);
         setReadNotificationIds([]);
         setIsLoading(false);
         return;
       }
 
+      const profile = await getUserProfile(user.uid);
+
       setUid(user.uid);
+      setIsSeller(profile?.role === "seller");
 
       const savedReadIds = localStorage.getItem(getStorageKey(user.uid));
       setReadNotificationIds(savedReadIds ? JSON.parse(savedReadIds) : []);
 
-      unsubscribeReservations = subscribeConsumerReservations(
-        user.uid,
-        (items) => {
-          setReservations(items);
-          setIsLoading(false);
-        }
-      );
+      if (profile?.role === "seller") {
+        unsubscribeReservations = subscribeSellerReservations(
+          user.uid,
+          (items) => {
+            setReservations(items);
+            setIsLoading(false);
+          }
+        );
+      } else {
+        setReservations([]);
+        setIsLoading(false);
+      }
     });
 
     return () => {
@@ -175,53 +166,49 @@ export function Notifications() {
     );
   }, [uid, readNotificationIds]);
 
-  const getNotificationIcon = (type: AppNotification["type"]) => {
-    switch (type) {
-      case "booking_confirmed":
-        return <CheckCircle size={24} style={{ color: "#2E7D32" }} />;
-      case "booking_cancelled":
-        return <XCircle size={24} style={{ color: "#DC2626" }} />;
-      case "reminder":
-        return <Bell size={24} style={{ color: "#566F2F" }} />;
-      case "noshow":
-        return <AlertCircle size={24} style={{ color: "#DC2626" }} />;
-      default:
-        return <Bell size={24} style={{ color: "#9CA3AF" }} />;
+  const getIcon = (type: SellerNotification["type"]) => {
+    if (type === "new_reservation") {
+      return <Bell size={24} style={{ color: "#566F2F" }} />;
     }
+
+    if (type === "attendance_waiting") {
+      return <CheckCircle size={24} style={{ color: "#D97706" }} />;
+    }
+
+    return <AlertCircle size={24} style={{ color: "#DC2626" }} />;
   };
 
-  const markAsRead = (notificationId: string) => {
+  const handleClickNotification = (notification: SellerNotification) => {
     setReadNotificationIds((prev) => {
-      if (prev.includes(notificationId)) return prev;
-      return [...prev, notificationId];
+      if (prev.includes(notification.id)) return prev;
+      return [...prev, notification.id];
     });
-  };
 
-  const handleNotificationClick = (notification: AppNotification) => {
-    markAsRead(notification.id);
-    navigate(`/reservations?reservationId=${notification.reservationId}`);
+    navigate(`/seller/reservations?reservationId=${notification.reservationId}`);
   };
 
   const handleMarkAllAsRead = () => {
-    setReadNotificationIds(notifications.map((notification) => notification.id));
+    setReadNotificationIds(notifications.map((item) => item.id));
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">알림을 불러오는 중입니다.</p>
+        <p className="text-gray-500">판매자 알림을 불러오는 중입니다.</p>
       </div>
     );
   }
 
-  if (!uid) {
+  if (!uid || !isSeller) {
     return (
       <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
         <div className="bg-white rounded-lg p-6 shadow-sm text-center w-full max-w-sm">
-          <Bell size={48} className="mx-auto mb-4 text-gray-300" />
+          <Store size={48} className="mx-auto mb-4 text-gray-300" />
           <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
           <p className="text-gray-500 mb-5">
-            알림을 확인하려면 로그인해주세요.
+            판매자 알림을 확인하려면 
+            <br />
+            판매자 계정으로 로그인해주세요.
           </p>
           <Link to="/login">
             <button
@@ -243,7 +230,7 @@ export function Notifications() {
         <div className="flex justify-between items-start gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-1" style={{ color: "#566F2F" }}>
-              알림
+              판매자 알림
             </h2>
 
             {unreadCount > 0 ? (
@@ -280,7 +267,7 @@ export function Notifications() {
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              onClick={() => handleNotificationClick(notification)}
+              onClick={() => handleClickNotification(notification)}
               className={`bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
                 !notification.read ? "border-2" : "border"
               }`}
@@ -290,10 +277,10 @@ export function Notifications() {
             >
               <div className="flex gap-3">
                 <div className="flex-shrink-0 mt-1">
-                  {getNotificationIcon(notification.type)}
+                  {getIcon(notification.type)}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1">
                   <div className="flex justify-between items-start mb-1">
                     <h4 className="font-semibold text-base">
                       {notification.title}
@@ -311,11 +298,7 @@ export function Notifications() {
                     {notification.message}
                   </p>
 
-                  <p className="text-xs text-gray-400">
-                    {format(notification.timestamp, "M월 d일 (E) HH:mm", {
-                      locale: ko,
-                    })}
-                  </p>
+                  <p className="text-xs text-gray-400">{notification.time}</p>
                 </div>
               </div>
             </div>

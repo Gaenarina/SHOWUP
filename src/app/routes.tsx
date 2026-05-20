@@ -10,11 +10,30 @@ import { Notifications } from "./components/Notifications";
 import { MyPage } from "./components/MyPage";
 import { SellerReservations } from "./components/SellerReservations";
 import { Login } from "./components/Login";
+import { Signup } from "./components/Signup";
+import { SellerLayout } from "./components/SellerLayout";
+import { SellerHome } from "./components/SellerHome";
+import { SellerNotifications } from "./components/SellerNotifications";
+import { SellerMyPage } from "./components/SellerMyPage";
+import { ReservationAuth } from "./components/ReservationAuth";
+import { SellerReservationAuth } from "./components/SellerReservationAuth";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
+  },
+  {
+    path: "/signup",
+    Component: Signup,
+  },
+  {
+    path: "/reservations/:reservationId/auth",
+    Component: ReservationAuth,
+  },
+  {
+    path: "/seller/reservations/:reservationId/auth",
+    Component: SellerReservationAuth,
   },
   {
     path: "/",
@@ -28,7 +47,16 @@ export const router = createBrowserRouter([
       { path: "reservations", Component: Reservations },
       { path: "notifications", Component: Notifications },
       { path: "mypage", Component: MyPage },
-      { path: "seller/reservations", Component: SellerReservations },
+    ],
+  },
+  {
+    path: "/seller",
+    Component: SellerLayout,
+    children: [
+      { index: true, Component: SellerHome },
+      { path: "reservations", Component: SellerReservations },
+      { path: "notifications", Component: SellerNotifications },
+      { path: "mypage", Component: SellerMyPage },
     ],
   },
 ]);

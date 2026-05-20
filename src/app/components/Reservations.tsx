@@ -1,151 +1,299 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Calendar, Clock, MapPin, CheckCircle, XCircle } from "lucide-react";
-
-interface Reservation {
-  id: string;
-  storeId: string;
-  storeName: string;
-  address: string;
-  date: Date;
-  time: string;
-  deposit: number;
-  status: "upcoming" | "completed" | "noshow";
-  canConfirm: boolean;
-}
-
-const mockReservations: Reservation[] = [
-  {
-    id: "1",
-    storeId: "1",
-    storeName: "카페 온",
-    address: "안성시 중앙로 123",
-    date: new Date(2026, 4, 10, 13, 0),
-    time: "13:00",
-    deposit: 0.012,
-    status: "upcoming",
-    canConfirm: true,
-  },
-  {
-    id: "2",
-    storeId: "2",
-    storeName: "스터디 카페 집중",
-    address: "안성시 대학로 456",
-    date: new Date(2026, 4, 5, 15, 0),
-    time: "15:00",
-    deposit: 0.015,
-    status: "completed",
-    canConfirm: false,
-  },
-  {
-    id: "3",
-    storeId: "3",
-    storeName: "레스토랑 미식가",
-    address: "천안시 번화가 789",
-    date: new Date(2026, 3, 28, 19, 0),
-    time: "19:00",
-    deposit: 0.02,
-    status: "noshow",
-    canConfirm: false,
-  },
-];
+import { Calendar, Clock, MapPin, CheckCircle, XCircle, CalendarCheck, } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebase";
+import {
+  expireOverdueReservations,
+  subscribeConsumerReservations,
+} from "../../services/reservationService";
+import type { Reservation } from "../../types/reservation";
 
 export function Reservations() {
-  const [reservations] = useState<Reservation[]>(mockReservations);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleConfirmAttendance = (reservation: Reservation) => {
-    setSelectedReservation(reservation);
-    setShowConfirmModal(true);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedReservationId = searchParams.get("reservationId");
+
+  useEffect(() => {
+    let unsubscribeReservations: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (unsubscribeReservations) {
+        unsubscribeReservations();
+      }
+
+      if (!user) {
+        setIsLoggedIn(false);
+        setReservations([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoggedIn(true);
+
+      unsubscribeReservations = subscribeConsumerReservations(
+        user.uid,
+        (items) => {
+          setReservations(items);
+          setIsLoading(false);
+        }
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+
+      if (unsubscribeReservations) {
+        unsubscribeReservations();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reservations.length === 0) return;
+
+    expireOverdueReservations(reservations);
+
+    const timer = window.setInterval(() => {
+      expireOverdueReservations(reservations);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [reservations]);
+
+  useEffect(() => {
+    if (!selectedReservationId) return;
+
+    const target = document.getElementById(
+      `reservation-${selectedReservationId}`
+    );
+
+    if (target) {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selectedReservationId, reservations]);
+
+  const getReservationDate = (date: Date) => {
+    return date instanceof Date ? date : new Date(date);
   };
 
-  const confirmAttendance = () => {
-    // Here would be blockchain transaction
-    setShowConfirmModal(false);
-    alert("참석이 확인되었습니다! 보증금이 환불됩니다.");
+  const getRemainingSeconds = (reservation: Reservation) => {
+    if (!reservation.verificationExpiresAt) return 0;
+
+    const remaining = reservation.verificationExpiresAt.getTime() - Date.now();
+
+    return Math.max(0, Math.ceil(remaining / 1000));
   };
 
-  const upcomingReservations = reservations.filter((r) => r.status === "upcoming");
-  const pastReservations = reservations.filter((r) => r.status !== "upcoming");
+  const getRemainingText = (reservation: Reservation) => {
+    const remainingSeconds = getRemainingSeconds(reservation);
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const getCanConfirm = (reservation: Reservation) => {
+    if (!reservation.verificationEnabled) return false;
+    if (reservation.consumerVerified) return false;
+    if (reservation.status !== "confirmed") return false;
+    if (!reservation.verificationExpiresAt) return false;
+
+    return Date.now() <= reservation.verificationExpiresAt.getTime();
+  };
+
+  const handleReservationClick = (reservation: Reservation) => {
+    if (!getCanConfirm(reservation)) return;
+
+    navigate(`/reservations/${reservation.id}/auth`);
+  };
+
+  const isSelectedReservation = (reservationId: string) => {
+    return selectedReservationId === reservationId;
+  };
+
+  const upcomingReservations = reservations.filter(
+    (reservation) =>
+      reservation.status === "pending" || reservation.status === "confirmed"
+  );
+
+  const pastReservations = reservations.filter(
+    (reservation) =>
+      reservation.status === "completed" || reservation.status === "noshow"
+  );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
+        <p className="text-gray-500">예약 정보를 불러오는 중입니다.</p>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
+        <div className="bg-white rounded-lg p-6 shadow-sm text-center w-full max-w-sm">
+          <CalendarCheck size={48} className="mx-auto mb-4 text-gray-300" />
+
+          <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
+
+          <p className="text-gray-500 mb-5">
+            예약 현황을 확인하려면 로그인해주세요.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="w-full py-3 rounded-lg text-white font-semibold"
+            style={{ backgroundColor: "#566F2F" }}
+          >
+            로그인하러 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 pb-20">
-      {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-1" style={{ color: '#566F2F' }}>
+        <h2 className="text-2xl font-bold mb-1" style={{ color: "#566F2F" }}>
           내 예약 현황
         </h2>
         <p className="text-gray-600">예약 내역을 확인하세요</p>
       </div>
 
-      {/* Upcoming Reservations */}
       <div className="mb-8">
         <h3 className="font-semibold text-lg mb-4">예정된 예약</h3>
+
         {upcomingReservations.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center shadow-sm">
             <p className="text-gray-500">예정된 예약이 없습니다.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {upcomingReservations.map((reservation) => (
-              <div
-                key={reservation.id}
-                className="bg-white rounded-lg p-4 shadow-sm border-2"
-                style={{ borderColor: '#566F2F' }}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-semibold text-lg">{reservation.storeName}</h4>
-                  <span
-                    className="px-3 py-1 rounded-full text-sm font-medium"
-                    style={{ backgroundColor: '#E8F5E9', color: '#2E7D32' }}
-                  >
-                    예정
-                  </span>
-                </div>
+            {upcomingReservations.map((reservation) => {
+              const canConfirm = getCanConfirm(reservation);
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-gray-600 text-sm">
-                    <MapPin size={16} className="mr-2" />
-                    {reservation.address}
-                  </div>
-                  <div className="flex items-center text-gray-600 text-sm">
-                    <Calendar size={16} className="mr-2" />
-                    {format(reservation.date, "yyyy년 M월 d일 (E)", { locale: ko })}
-                  </div>
-                  <div className="flex items-center text-gray-600 text-sm">
-                    <Clock size={16} className="mr-2" />
-                    {reservation.time}
-                  </div>
-                </div>
+              return (
+                <div
+                  id={`reservation-${reservation.id}`}
+                  key={reservation.id}
+                  onClick={() => handleReservationClick(reservation)}
+                  className={`bg-white rounded-lg p-4 shadow-sm border-2 transition-all ${
+                    canConfirm ? "cursor-pointer hover:shadow-md" : ""
+                  } ${
+                    isSelectedReservation(reservation.id)
+                      ? "ring-4 ring-[#DDE8D2]"
+                      : ""
+                  }`}
+                  style={{ borderColor: canConfirm ? "#566F2F" : "#E5E7EB" }}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-semibold text-lg">
+                      {reservation.storeName}
+                    </h4>
 
-                <div className="flex justify-between items-center pt-3 border-t">
-                  <span className="text-sm text-gray-600">
-                    예치 보증금:{" "}
-                    <span className="font-semibold" style={{ color: '#D97706' }}>
-                      {reservation.deposit.toFixed(3)} ETH
+                    {canConfirm ? (
+                      <span
+                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        style={{ backgroundColor: "#E8F5E9", color: "#2E7D32" }}
+                      >
+                        인증 가능
+                      </span>
+                    ) : reservation.status === "confirmed" ? (
+                      <span
+                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
+                      >
+                        인증 대기
+                      </span>
+                    ) : (
+                      <span
+                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}
+                      >
+                        예약 요청
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <MapPin size={16} className="mr-2" />
+                      {reservation.address || "주소 정보 없음"}
+                    </div>
+
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <Calendar size={16} className="mr-2" />
+                      {format(
+                        getReservationDate(reservation.date),
+                        "yyyy년 M월 d일 (E)",
+                        { locale: ko }
+                      )}
+                    </div>
+
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <Clock size={16} className="mr-2" />
+                      {reservation.time}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <span className="text-sm text-gray-600">
+                      예치 보증금:{" "}
+                      <span
+                        className="font-semibold"
+                        style={{ color: "#D97706" }}
+                      >
+                        {Number(reservation.deposit ?? 0).toFixed(3)} ETH
+                      </span>
                     </span>
-                  </span>
-                  {reservation.canConfirm && (
-                    <button
-                      onClick={() => handleConfirmAttendance(reservation)}
-                      className="px-4 py-2 rounded-lg text-white font-medium"
-                      style={{ backgroundColor: '#566F2F' }}
-                    >
-                      참석 완료
-                    </button>
-                  )}
+
+                    {canConfirm ? (
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "#566F2F" }}
+                      >
+                        인증하기 · {getRemainingText(reservation)}
+                      </span>
+                    ) : reservation.consumerVerified ? (
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "#6B7280" }}
+                      >
+                        인증 완료
+                      </span>
+                    ) : reservation.status === "confirmed" ? (
+                      <span className="text-sm text-gray-400">
+                        판매자 활성화 확인 중
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400">
+                        판매자 인증 대기
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Past Reservations */}
       <div>
         <h3 className="font-semibold text-lg mb-4">이전 예약</h3>
+
         {pastReservations.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center shadow-sm">
             <p className="text-gray-500">이전 예약이 없습니다.</p>
@@ -154,23 +302,36 @@ export function Reservations() {
           <div className="space-y-4">
             {pastReservations.map((reservation) => (
               <div
+                id={`reservation-${reservation.id}`}
                 key={reservation.id}
-                className="bg-white rounded-lg p-4 shadow-sm"
+                className={`bg-white rounded-lg p-4 shadow-sm border transition-all ${
+                  isSelectedReservation(reservation.id)
+                    ? "border-2 ring-4 ring-[#DDE8D2]"
+                    : ""
+                }`}
+                style={{
+                  borderColor: isSelectedReservation(reservation.id)
+                    ? "#566F2F"
+                    : "#E5E7EB",
+                }}
               >
                 <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-semibold text-lg">{reservation.storeName}</h4>
+                  <h4 className="font-semibold text-lg">
+                    {reservation.storeName}
+                  </h4>
+
                   {reservation.status === "completed" ? (
                     <span
                       className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
-                      style={{ backgroundColor: '#E8F5E9', color: '#2E7D32' }}
+                      style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}
                     >
                       <CheckCircle size={16} />
-                      완료
+                      인증 완료
                     </span>
                   ) : (
                     <span
                       className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
-                      style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
+                      style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
                     >
                       <XCircle size={16} />
                       NOSHOW
@@ -181,12 +342,18 @@ export function Reservations() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-gray-600 text-sm">
                     <MapPin size={16} className="mr-2" />
-                    {reservation.address}
+                    {reservation.address || "주소 정보 없음"}
                   </div>
+
                   <div className="flex items-center text-gray-600 text-sm">
                     <Calendar size={16} className="mr-2" />
-                    {format(reservation.date, "yyyy년 M월 d일 (E)", { locale: ko })}
+                    {format(
+                      getReservationDate(reservation.date),
+                      "yyyy년 M월 d일 (E)",
+                      { locale: ko }
+                    )}
                   </div>
+
                   <div className="flex items-center text-gray-600 text-sm">
                     <Clock size={16} className="mr-2" />
                     {reservation.time}
@@ -199,11 +366,16 @@ export function Reservations() {
                     <span
                       className="font-semibold"
                       style={{
-                        color: reservation.status === "completed" ? '#2E7D32' : '#DC2626',
+                        color:
+                          reservation.status === "completed"
+                            ? "#6B7280"
+                            : "#DC2626",
                       }}
                     >
-                      {reservation.deposit.toFixed(3)} ETH{" "}
-                      {reservation.status === "completed" ? "(환불됨)" : "(차감됨)"}
+                      {Number(reservation.deposit ?? 0).toFixed(3)} ETH{" "}
+                      {reservation.status === "completed"
+                        ? "(환불 예정)"
+                        : "(차감 예정)"}
                     </span>
                   </span>
                 </div>
@@ -212,36 +384,6 @@ export function Reservations() {
           </div>
         )}
       </div>
-
-      {/* Confirm Attendance Modal */}
-      {showConfirmModal && selectedReservation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-xl font-bold mb-4">참석 확인</h3>
-            <p className="text-gray-600 mb-6">
-              {selectedReservation.storeName}에 참석하셨나요?
-              <br />
-              참석 확인 시 보증금이 환불됩니다.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-3 rounded-lg border-2 font-medium"
-                style={{ borderColor: '#D1D5DB', color: '#6B7280' }}
-              >
-                취소
-              </button>
-              <button
-                onClick={confirmAttendance}
-                className="flex-1 py-3 rounded-lg text-white font-medium"
-                style={{ backgroundColor: '#566F2F' }}
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,53 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Search, MapPin } from "lucide-react";
-
-interface Store {
-  id: string;
-  name: string;
-  address: string;
-  baseDeposit: string;
-  available: boolean;
-}
-
-const mockStores: Store[] = [
-  {
-    id: "1",
-    name: "카페 온",
-    address: "안성시 중앙로 123",
-    baseDeposit: "0.01 ETH",
-    available: true,
-  },
-  {
-    id: "2",
-    name: "스터디 카페 집중",
-    address: "안성시 대학로 456",
-    baseDeposit: "0.015 ETH",
-    available: true,
-  },
-  {
-    id: "3",
-    name: "레스토랑 미식가",
-    address: "천안시 번화가 789",
-    baseDeposit: "0.02 ETH",
-    available: true,
-  },
-  {
-    id: "4",
-    name: "북카페 책과 커피",
-    address: "서울시 강남구 101",
-    baseDeposit: "0.01 ETH",
-    available: false,
-  },
-];
+import {
+  seedDefaultStores,
+  subscribeStores,
+} from "../../services/storeService";
+import type { Store } from "../../types/store";
 
 export function Home() {
   const [region, setRegion] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
+  const [stores, setStores] = useState<Store[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const regions = ["전체", "서울", "경기", "안성", "천안"];
 
-  const filteredStores = mockStores.filter((store) => {
+  useEffect(() => {
+    seedDefaultStores().catch((error) => {
+      console.error("기본 가게 생성 실패:", error);
+    });
+
+    const unsubscribe = subscribeStores((items) => {
+      setStores(items);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const filteredStores = stores.filter((store) => {
     const matchesRegion = region === "전체" || store.address.includes(region);
     const matchesSearch =
       searchQuery === "" ||
@@ -58,7 +39,6 @@ export function Home() {
 
   return (
     <div className="min-h-screen p-4 pb-20">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-2 gap-4">
           <div>
@@ -92,7 +72,6 @@ export function Home() {
         </div>
       </div>
 
-      {/* Region Selector */}
       <div className="mb-4">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {regions.map((r) => (
@@ -115,7 +94,6 @@ export function Home() {
         </div>
       </div>
 
-      {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
           <Search
@@ -134,9 +112,12 @@ export function Home() {
         </div>
       </div>
 
-      {/* Store List */}
       <div className="space-y-4">
-        {filteredStores.length === 0 ? (
+        {isLoading ? (
+          <p className="text-center text-gray-500 py-8">
+            업체 정보를 불러오는 중입니다.
+          </p>
+        ) : filteredStores.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
             검색 결과가 없습니다.
           </p>
@@ -144,12 +125,20 @@ export function Home() {
           filteredStores.map((store) => (
             <Link
               key={store.id}
-              to={`/store/${store.id}`}
+              to={`/booking/${store.id}`}
               className="block"
             >
               <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold">{store.name}</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold">{store.name}</h3>
+
+                    {store.storeType === "seller" && (
+                      <p className="text-xs mt-1" style={{ color: "#718952" }}>
+                        판매자 등록 가게
+                      </p>
+                    )}
+                  </div>
 
                   {store.available ? (
                     <span
@@ -173,6 +162,10 @@ export function Home() {
                   {store.address}
                 </div>
 
+                <p className="text-sm text-gray-500 mb-3">
+                  {store.description}
+                </p>
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">
                     기본 보증금:{" "}
@@ -180,13 +173,14 @@ export function Home() {
                       className="font-semibold"
                       style={{ color: "#D97706" }}
                     >
-                      {store.baseDeposit}
+                      {store.baseDeposit.toFixed(3)} ETH
                     </span>
                   </span>
 
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-lg text-white text-sm font-medium"
+                    disabled={!store.available}
+                    className="px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
                     style={{ backgroundColor: "#566F2F" }}
                   >
                     예약하기

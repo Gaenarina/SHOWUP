@@ -1,16 +1,51 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { User, Store, Mail, Lock } from "lucide-react";
+import { getUserProfile, loginUser } from "../../services/authService";
+import type { UserRole } from "../../types/user";
 
 export function Login() {
-  const [role, setRole] = useState<"consumer" | "seller">("consumer");
+  const [role, setRole] = useState<UserRole>("consumer");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (role === "seller") {
-      navigate("/seller/reservations");
-    } else {
-      navigate("/");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setErrorMessage("이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      const user = await loginUser(email, password);
+      const profile = await getUserProfile(user.uid);
+
+      if (!profile) {
+        setErrorMessage("사용자 정보를 찾을 수 없습니다.");
+        return;
+      }
+
+      if (profile.role !== role) {
+        setErrorMessage("선택한 회원 유형과 가입 정보가 일치하지 않습니다.");
+        return;
+      }
+
+      if (profile.role === "seller") {
+        navigate("/seller");
+      } else {
+        navigate("/");
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("로그인 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,6 +102,8 @@ export function Login() {
             <Mail size={18} className="text-gray-400" />
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="이메일"
               className="w-full bg-transparent outline-none text-sm"
             />
@@ -76,19 +113,26 @@ export function Login() {
             <Lock size={18} className="text-gray-400" />
             <input
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호"
               className="w-full bg-transparent outline-none text-sm"
             />
           </div>
         </div>
 
+        {errorMessage && (
+          <p className="text-sm text-red-500 mt-4">{errorMessage}</p>
+        )}
+
         <button
           type="button"
           onClick={handleLogin}
-          className="w-full mt-6 py-3 rounded-xl text-white font-semibold"
+          disabled={isLoading}
+          className="w-full mt-6 py-3 rounded-xl text-white font-semibold disabled:opacity-60"
           style={{ backgroundColor: "#566F2F" }}
         >
-          로그인
+          {isLoading ? "로그인 중..." : "로그인"}
         </button>
 
         <div className="flex justify-between items-center mt-5 text-sm">
@@ -96,13 +140,13 @@ export function Login() {
             메인으로 돌아가기
           </Link>
 
-          <button
-            type="button"
+          <Link
+            to="/signup"
             className="font-medium"
             style={{ color: "#566F2F" }}
           >
             회원가입
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Link } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   Calendar,
   Clock,
@@ -11,134 +11,140 @@ import {
   XCircle,
   AlertTriangle,
   Star,
-  Home,
+  Store,
 } from "lucide-react";
-
-interface CustomerReservation {
-  id: string;
-  customerId: string;
-  customerName: string;
-  date: Date;
-  time: string;
-  deposit: number;
-  status: "pending" | "confirmed" | "completed" | "noshow";
-  customerReputation: {
-    title: string;
-    noShowCount: number;
-    attendanceRate: number;
-  };
-  canActivateConfirm: boolean;
-}
-
-const mockCustomerReservations: CustomerReservation[] = [
-  {
-    id: "1",
-    customerId: "c1",
-    customerName: "김철수",
-    date: new Date(2026, 4, 8, 13, 0),
-    time: "13:00",
-    deposit: 0.012,
-    status: "pending",
-    customerReputation: {
-      title: "참석왕 ⭐",
-      noShowCount: 1,
-      attendanceRate: 95,
-    },
-    canActivateConfirm: true,
-  },
-  {
-    id: "2",
-    customerId: "c2",
-    customerName: "이영희",
-    date: new Date(2026, 4, 9, 15, 0),
-    time: "15:00",
-    deposit: 0.025,
-    status: "pending",
-    customerReputation: {
-      title: "노쇼왕 ⭐⭐",
-      noShowCount: 4,
-      attendanceRate: 60,
-    },
-    canActivateConfirm: false,
-  },
-  {
-    id: "3",
-    customerId: "c3",
-    customerName: "박민수",
-    date: new Date(2026, 4, 7, 11, 0),
-    time: "11:00",
-    deposit: 0.01,
-    status: "completed",
-    customerReputation: {
-      title: "참석왕",
-      noShowCount: 0,
-      attendanceRate: 100,
-    },
-    canActivateConfirm: false,
-  },
-  {
-    id: "4",
-    customerId: "c4",
-    customerName: "최유진",
-    date: new Date(2026, 4, 6, 19, 0),
-    time: "19:00",
-    deposit: 0.02,
-    status: "noshow",
-    customerReputation: {
-      title: "노쇼왕 ⭐⭐⭐",
-      noShowCount: 5,
-      attendanceRate: 50,
-    },
-    canActivateConfirm: false,
-  },
-];
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebase";
+import {
+  cancelReservation,
+  markReservationAsNoShow,
+  subscribeSellerReservations,
+} from "../../services/reservationService";
+import type { Reservation } from "../../types/reservation";
 
 export function SellerReservations() {
-  const [reservations, setReservations] = useState<CustomerReservation[]>(
-    mockCustomerReservations
-  );
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedReservation, setSelectedReservation] =
-    useState<CustomerReservation | null>(null);
+    useState<Reservation | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleCancelReservation = (reservation: CustomerReservation) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedReservationId = searchParams.get("reservationId");
+
+  useEffect(() => {
+    let unsubscribeReservations: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (unsubscribeReservations) {
+        unsubscribeReservations();
+      }
+
+      if (!user) {
+        setIsLoggedIn(false);
+        setReservations([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoggedIn(true);
+
+      unsubscribeReservations = subscribeSellerReservations(
+        user.uid,
+        (items) => {
+          setReservations(items);
+          setIsLoading(false);
+        }
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+
+      if (unsubscribeReservations) {
+        unsubscribeReservations();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedReservationId) return;
+
+    const target = document.getElementById(
+      `seller-reservation-${selectedReservationId}`
+    );
+
+    if (target) {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selectedReservationId, reservations]);
+
+  const getReservationDate = (date: Date) => {
+    return date instanceof Date ? date : new Date(date);
+  };
+
+  const getCustomerReputation = (reservation: Reservation) => {
+    return (
+      reservation.customerReputation ?? {
+        title: "일반 고객",
+        noShowCount: 0,
+        attendanceRate: 100,
+      }
+    );
+  };
+
+  const getCanOpenAuth = (reservation: Reservation) => {
+    return reservation.status === "pending" || reservation.status === "confirmed";
+  };
+
+  const handleReservationClick = (reservation: Reservation) => {
+    if (!getCanOpenAuth(reservation)) return;
+
+    navigate(`/seller/reservations/${reservation.id}/auth`);
+  };
+
+  const handleCancelReservation = (reservation: Reservation) => {
     setSelectedReservation(reservation);
     setShowCancelModal(true);
   };
 
-  const confirmCancel = () => {
-    if (selectedReservation) {
-      setReservations(
-        reservations.filter((r) => r.id !== selectedReservation.id)
-      );
+  const confirmCancel = async () => {
+    if (!selectedReservation) return;
+
+    try {
+      await cancelReservation(selectedReservation.id);
       setShowCancelModal(false);
+      setSelectedReservation(null);
       alert("예약이 취소되었습니다. 고객에게 보증금이 환불됩니다.");
+    } catch (error) {
+      console.error(error);
+      alert("예약 취소 중 오류가 발생했습니다.");
     }
   };
 
-  const activateConfirmButton = (reservationId: string) => {
-    setReservations(
-      reservations.map((r) =>
-        r.id === reservationId ? { ...r, status: "confirmed" as const } : r
-      )
-    );
-    alert("고객 측에서 참석 완료 버튼이 활성화되었습니다.");
-  };
-
-  const markAsNoShow = (reservationId: string) => {
-    setReservations(
-      reservations.map((r) =>
-        r.id === reservationId ? { ...r, status: "noshow" as const } : r
-      )
-    );
-    alert("노쇼 처리되었습니다. 보증금이 입금됩니다.");
+  const markAsNoShow = async (reservationId: string) => {
+    try {
+      await markReservationAsNoShow(reservationId);
+      alert("노쇼 처리되었습니다. 보증금이 입금됩니다.");
+    } catch (error) {
+      console.error(error);
+      alert("노쇼 처리 중 오류가 발생했습니다.");
+    }
   };
 
   const pendingReservations = reservations.filter(
-    (r) => r.status === "pending" || r.status === "confirmed"
+    (reservation) =>
+      reservation.status === "pending" || reservation.status === "confirmed"
   );
+
   const pastReservations = reservations.filter(
-    (r) => r.status === "completed" || r.status === "noshow"
+    (reservation) =>
+      reservation.status === "completed" || reservation.status === "noshow"
   );
 
   const getReputationColor = (noShowCount: number) => {
@@ -147,32 +153,61 @@ export function SellerReservations() {
     return { text: "#DC2626", bg: "#FEE2E2" };
   };
 
+  const isSelectedReservation = (reservationId: string) => {
+    return selectedReservationId === reservationId;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
+        <p className="text-gray-500">예약 정보를 불러오는 중입니다.</p>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
+        <div className="bg-white rounded-lg p-6 shadow-sm text-center w-full max-w-sm">
+          <Store size={48} className="mx-auto mb-4 text-gray-300" />
+
+          <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
+
+          <p className="text-gray-500 mb-5">
+            판매자 예약 관리를 이용하려면
+            <br />
+            판매자 계정으로 로그인해주세요.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="w-full py-3 rounded-lg text-white font-semibold"
+            style={{ backgroundColor: "#566F2F" }}
+          >
+            로그인하러 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4 pb-20">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h2 className="text-2xl font-bold mb-1" style={{ color: '#566F2F' }}>
-              예약 관리 (판매자)
+            <h2 className="text-2xl font-bold mb-1" style={{ color: "#566F2F" }}>
+              예약 관리
             </h2>
             <p className="text-gray-600">고객 예약을 관리하세요</p>
           </div>
-          <Link to="/">
-            <button
-              className="px-4 py-2 rounded-lg flex items-center gap-2 border-2"
-              style={{ borderColor: '#566F2F', color: '#566F2F' }}
-            >
-              <Home size={18} />
-              <span className="text-sm font-medium">소비자</span>
-            </button>
-          </Link>
         </div>
       </div>
 
-      {/* Pending Reservations */}
       <div className="mb-8">
         <h3 className="font-semibold text-lg mb-4">대기 중인 예약</h3>
+
         {pendingReservations.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center shadow-sm">
             <p className="text-gray-500">대기 중인 예약이 없습니다.</p>
@@ -180,22 +215,36 @@ export function SellerReservations() {
         ) : (
           <div className="space-y-4">
             {pendingReservations.map((reservation) => {
-              const repColor = getReputationColor(
-                reservation.customerReputation.noShowCount
-              );
+              const reputation = getCustomerReputation(reservation);
+              const repColor = getReputationColor(reputation.noShowCount);
+              const canOpenAuth = getCanOpenAuth(reservation);
+
               return (
                 <div
+                  id={`seller-reservation-${reservation.id}`}
                   key={reservation.id}
-                  className="bg-white rounded-lg p-4 shadow-sm border"
+                  onClick={() => handleReservationClick(reservation)}
+                  className={`bg-white rounded-lg p-4 shadow-sm border transition-all ${
+                    canOpenAuth ? "cursor-pointer hover:shadow-md" : ""
+                  } ${
+                    isSelectedReservation(reservation.id)
+                      ? "border-2 ring-4 ring-[#DDE8D2]"
+                      : ""
+                  }`}
+                  style={{
+                    borderColor: isSelectedReservation(reservation.id)
+                      ? "#566F2F"
+                      : "#E5E7EB",
+                  }}
                 >
-                  {/* Customer Info */}
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
-                      <User size={20} style={{ color: '#566F2F' }} />
+                      <User size={20} style={{ color: "#566F2F" }} />
                       <h4 className="font-semibold text-lg">
-                        {reservation.customerName}
+                        {reservation.consumerName}
                       </h4>
                     </div>
+
                     <div
                       className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
                       style={{
@@ -204,100 +253,108 @@ export function SellerReservations() {
                       }}
                     >
                       <Star size={12} />
-                      {reservation.customerReputation.title}
+                      {reputation.title}
                     </div>
                   </div>
 
-                  {/* Reputation Warning */}
-                  {reservation.customerReputation.noShowCount >= 3 && (
+                  {reputation.noShowCount >= 3 && (
                     <div
                       className="rounded p-2 mb-3 flex items-start gap-2"
-                      style={{ backgroundColor: '#FEE2E2' }}
+                      style={{ backgroundColor: "#FEE2E2" }}
                     >
-                      <AlertTriangle size={16} style={{ color: '#DC2626' }} />
-                      <p className="text-xs" style={{ color: '#991B1B' }}>
-                        노쇼 기록이 많은 고객입니다. (노쇼{" "}
-                        {reservation.customerReputation.noShowCount}회, 참석률{" "}
-                        {reservation.customerReputation.attendanceRate}%)
+                      <AlertTriangle size={16} style={{ color: "#DC2626" }} />
+                      <p className="text-xs" style={{ color: "#991B1B" }}>
+                        노쇼 기록이 많은 고객입니다. 노쇼{" "}
+                        {reputation.noShowCount}회, 참석률{" "}
+                        {reputation.attendanceRate}%
                       </p>
                     </div>
                   )}
 
-                  {/* Reservation Details */}
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-gray-600 text-sm">
                       <Calendar size={16} className="mr-2" />
-                      {format(reservation.date, "yyyy년 M월 d일 (E)", {
-                        locale: ko,
-                      })}
+                      {format(
+                        getReservationDate(reservation.date),
+                        "yyyy년 M월 d일 (E)",
+                        { locale: ko }
+                      )}
                     </div>
+
                     <div className="flex items-center text-gray-600 text-sm">
                       <Clock size={16} className="mr-2" />
                       {reservation.time}
                     </div>
+
                     <div className="flex items-center text-gray-600 text-sm">
                       <DollarSign size={16} className="mr-2" />
                       보증금:{" "}
                       <span
                         className="font-semibold ml-1"
-                        style={{ color: '#D97706' }}
+                        style={{ color: "#D97706" }}
                       >
-                        {reservation.deposit.toFixed(3)} ETH
+                        {Number(reservation.deposit ?? 0).toFixed(3)} ETH
                       </span>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2 pt-3 border-t">
-                    {reservation.status === "pending" &&
-                      reservation.canActivateConfirm && (
-                        <>
-                          <button
-                            onClick={() =>
-                              activateConfirmButton(reservation.id)
-                            }
-                            className="flex-1 py-2 rounded-lg text-white font-medium"
-                            style={{ backgroundColor: '#566F2F' }}
-                          >
-                            참석 확인 활성화
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleCancelReservation(reservation)
-                            }
-                            className="px-4 py-2 rounded-lg border-2 font-medium"
-                            style={{
-                              borderColor: '#DC2626',
-                              color: '#DC2626',
-                            }}
-                          >
-                            취소
-                          </button>
-                        </>
-                      )}
+                    {reservation.status === "pending" && (
+                      <>
+                        <div
+                          className="flex-1 py-2 rounded-lg text-center text-sm font-medium"
+                          style={{
+                            backgroundColor: "#E8F5E9",
+                            color: "#2E7D32",
+                          }}
+                        >
+                          눌러서 인증 버튼 활성화
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelReservation(reservation);
+                          }}
+                          className="px-4 py-2 rounded-lg border-2 font-medium"
+                          style={{
+                            borderColor: "#DC2626",
+                            color: "#DC2626",
+                          }}
+                        >
+                          취소
+                        </button>
+                      </>
+                    )}
 
                     {reservation.status === "confirmed" && (
                       <div className="flex-1">
                         <div
                           className="text-center py-2 rounded-lg mb-2"
                           style={{
-                            backgroundColor: '#E8F5E9',
-                            color: '#2E7D32',
+                            backgroundColor: "#E8F5E9",
+                            color: "#2E7D32",
                           }}
                         >
                           <p className="text-sm font-medium">
-                            ✓ 고객 확인 대기 중
+                            인증 버튼 활성화 완료 · 고객 확인 대기 중
                           </p>
                         </div>
+
                         <button
-                          onClick={() => markAsNoShow(reservation.id)}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsNoShow(reservation.id);
+                          }}
                           className="w-full py-2 rounded-lg border-2 font-medium text-sm"
                           style={{
-                            borderColor: '#DC2626',
-                            color: '#DC2626',
+                            borderColor: "#DC2626",
+                            color: "#DC2626",
                           }}
                         >
-                          노쇼 처리 (20분 경과)
+                          수동 노쇼 처리
                         </button>
                       </div>
                     )}
@@ -309,9 +366,9 @@ export function SellerReservations() {
         )}
       </div>
 
-      {/* Past Reservations */}
       <div>
         <h3 className="font-semibold text-lg mb-4">이전 예약</h3>
+
         {pastReservations.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center shadow-sm">
             <p className="text-gray-500">이전 예약이 없습니다.</p>
@@ -319,38 +376,49 @@ export function SellerReservations() {
         ) : (
           <div className="space-y-4">
             {pastReservations.map((reservation) => {
-              const repColor = getReputationColor(
-                reservation.customerReputation.noShowCount
-              );
+              const reputation = getCustomerReputation(reservation);
+              const repColor = getReputationColor(reputation.noShowCount);
+
               return (
                 <div
+                  id={`seller-reservation-${reservation.id}`}
                   key={reservation.id}
-                  className="bg-white rounded-lg p-4 shadow-sm"
+                  className={`bg-white rounded-lg p-4 shadow-sm border transition-all ${
+                    isSelectedReservation(reservation.id)
+                      ? "border-2 ring-4 ring-[#DDE8D2]"
+                      : ""
+                  }`}
+                  style={{
+                    borderColor: isSelectedReservation(reservation.id)
+                      ? "#566F2F"
+                      : "#E5E7EB",
+                  }}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
-                      <User size={20} style={{ color: '#9CA3AF' }} />
+                      <User size={20} style={{ color: "#9CA3AF" }} />
                       <h4 className="font-semibold">
-                        {reservation.customerName}
+                        {reservation.consumerName}
                       </h4>
                     </div>
+
                     {reservation.status === "completed" ? (
                       <span
                         className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
                         style={{
-                          backgroundColor: '#E8F5E9',
-                          color: '#2E7D32',
+                          backgroundColor: "#F3F4F6",
+                          color: "#6B7280",
                         }}
                       >
                         <CheckCircle size={16} />
-                        완료
+                        인증 완료
                       </span>
                     ) : (
                       <span
                         className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
                         style={{
-                          backgroundColor: '#FEE2E2',
-                          color: '#DC2626',
+                          backgroundColor: "#FEE2E2",
+                          color: "#DC2626",
                         }}
                       >
                         <XCircle size={16} />
@@ -359,14 +427,28 @@ export function SellerReservations() {
                     )}
                   </div>
 
+                  <div
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium mb-3"
+                    style={{
+                      backgroundColor: repColor.bg,
+                      color: repColor.text,
+                    }}
+                  >
+                    <Star size={12} />
+                    {reputation.title}
+                  </div>
+
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center">
                       <Calendar size={16} className="mr-2" />
-                      {format(reservation.date, "yyyy년 M월 d일 (E)", {
-                        locale: ko,
-                      })}{" "}
+                      {format(
+                        getReservationDate(reservation.date),
+                        "yyyy년 M월 d일 (E)",
+                        { locale: ko }
+                      )}{" "}
                       {reservation.time}
                     </div>
+
                     <div className="flex items-center">
                       <DollarSign size={16} className="mr-2" />
                       보증금:{" "}
@@ -375,12 +457,12 @@ export function SellerReservations() {
                         style={{
                           color:
                             reservation.status === "completed"
-                              ? '#9CA3AF'
-                              : '#2E7D32',
+                              ? "#9CA3AF"
+                              : "#2E7D32",
                         }}
                       >
-                        {reservation.deposit.toFixed(3)} ETH{" "}
-                        {reservation.status === "noshow" && "(입금됨)"}
+                        {Number(reservation.deposit ?? 0).toFixed(3)} ETH{" "}
+                        {reservation.status === "noshow" && "(입금 예정)"}
                       </span>
                     </div>
                   </div>
@@ -391,29 +473,33 @@ export function SellerReservations() {
         )}
       </div>
 
-      {/* Cancel Modal */}
       {showCancelModal && selectedReservation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full">
             <h3 className="text-xl font-bold mb-4">예약 취소</h3>
+
             <p className="text-gray-600 mb-6">
-              {selectedReservation.customerName}님의 예약을 취소하시겠습니까?
+              {selectedReservation.consumerName}님의 예약을 취소하시겠습니까?
               <br />
               <br />
               고객에게 보증금이 환불되며 알림이 전송됩니다.
             </p>
+
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowCancelModal(false)}
                 className="flex-1 py-3 rounded-lg border-2 font-medium"
-                style={{ borderColor: '#D1D5DB', color: '#6B7280' }}
+                style={{ borderColor: "#D1D5DB", color: "#6B7280" }}
               >
                 돌아가기
               </button>
+
               <button
+                type="button"
                 onClick={confirmCancel}
                 className="flex-1 py-3 rounded-lg text-white font-medium"
-                style={{ backgroundColor: '#DC2626' }}
+                style={{ backgroundColor: "#DC2626" }}
               >
                 취소 확정
               </button>

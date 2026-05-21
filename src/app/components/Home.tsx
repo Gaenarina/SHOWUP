@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
+﻿import { useEffect, useState, type CSSProperties } from "react";
+import { Link, useNavigate } from "./routerCompat";
 import { Search, MapPin } from "lucide-react";
 import {
   seedDefaultStores,
@@ -12,12 +12,17 @@ export function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const navigate = useNavigate();
 
   const regions = ["전체", "서울", "경기", "안성", "천안"];
 
   useEffect(() => {
+    setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
+
     seedDefaultStores().catch((error) => {
-      console.error("기본 가게 생성 실패:", error);
+      console.error("기본 매장 생성 실패:", error);
     });
 
     const unsubscribe = subscribeStores((items) => {
@@ -27,6 +32,19 @@ export function Home() {
 
     return () => unsubscribe();
   }, []);
+
+  const handleAuthClick = () => {
+    if (isLoggedIn) {
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userId");
+
+      setIsLoggedIn(false);
+      navigate("/");
+    } else {
+      navigate("/login");
+    }
+  };
 
   const filteredStores = stores.filter((store) => {
     const matchesRegion = region === "전체" || store.address.includes(region);
@@ -47,7 +65,7 @@ export function Home() {
                 className="text-sm font-medium"
                 style={{ color: "#718952" }}
               >
-                신뢰 기반 예약 플랫폼
+                노쇼 방지 예약 플랫폼
               </span>
 
               <h1 className="showup-logo mb-2">ShowUp</h1>
@@ -55,19 +73,18 @@ export function Home() {
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Link to="/login">
-              <button
-                type="button"
-                className="px-3 py-2 rounded-lg border text-sm font-medium whitespace-nowrap"
-                style={{
-                  borderColor: "#566F2F",
-                  color: "#566F2F",
-                  backgroundColor: "#FFFFFF",
-                }}
-              >
-                로그인
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={handleAuthClick}
+              className="px-3 py-2 rounded-lg border text-sm font-medium whitespace-nowrap"
+              style={{
+                borderColor: "#566F2F",
+                color: "#566F2F",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              {isLoggedIn ? "로그아웃" : "로그인"}
+            </button>
           </div>
         </div>
       </div>
@@ -103,11 +120,11 @@ export function Home() {
 
           <input
             type="text"
-            placeholder="카페, 스터디룸, 음식점 검색..."
+            placeholder="카페, 스터디룸, 식당을 검색하세요"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2"
-            style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
+            style={{ "--tw-ring-color": "#566F2F" } as CSSProperties}
           />
         </div>
       </div>
@@ -135,7 +152,7 @@ export function Home() {
 
                     {store.storeType === "seller" && (
                       <p className="text-xs mt-1" style={{ color: "#718952" }}>
-                        판매자 등록 가게
+                        판매자 등록 매장
                       </p>
                     )}
                   </div>
@@ -168,7 +185,7 @@ export function Home() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">
-                    기본 보증금:{" "}
+                    기본 보증금{" "}
                     <span
                       className="font-semibold"
                       style={{ color: "#D97706" }}

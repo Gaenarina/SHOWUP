@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router";
+﻿import { useParams, Link } from "./routerCompat";
 import { MapPin, Clock, DollarSign, Star } from "lucide-react";
 
 interface StoreInfo {
@@ -17,7 +17,7 @@ const mockStoreData: Record<string, StoreInfo> = {
     name: "카페 온",
     address: "안성시 중앙로 123",
     baseDeposit: "0.01 ETH",
-    description: "조용하고 아늑한 분위기의 카페입니다. 스터디와 작업하기 좋은 공간을 제공합니다.",
+    description: "조용하고 아늑한 분위기의 카페입니다. 스터디와 작업에 좋은 공간을 제공합니다.",
     hours: "09:00 - 22:00",
     rating: 4.5,
   },
@@ -32,10 +32,10 @@ const mockStoreData: Record<string, StoreInfo> = {
   },
   "3": {
     id: "3",
-    name: "레스토랑 미식가",
+    name: "오늘의 미식가",
     address: "천안시 번화가 789",
     baseDeposit: "0.02 ETH",
-    description: "신선한 재료로 만든 정통 한식을 즐길 수 있는 레스토랑입니다.",
+    description: "신선한 재료로 만든 정성 가득한 식사를 즐길 수 있는 식당입니다.",
     hours: "11:00 - 21:00",
     rating: 4.7,
   },
@@ -88,7 +88,7 @@ export function StoreDetail() {
             <div className="flex items-center">
               <DollarSign size={18} className="mr-2 text-gray-600" />
               <span className="text-gray-600">
-                기본 보증금:{" "}
+                기본 보증금{" "}
                 <span className="font-semibold" style={{ color: '#D97706' }}>
                   {store.baseDeposit}
                 </span>
@@ -106,10 +106,10 @@ export function StoreDetail() {
             보증금 안내
           </h3>
           <p className="text-sm" style={{ color: '#92400E' }}>
-            • 노쇼 기록에 따라 추가 보증금이 부과될 수 있습니다.
+            노쇼 기록에 따라 추가 보증금이 부과될 수 있습니다.
             <br />
-            • 정상 참석 시 보증금은 자동으로 환불됩니다.
-            <br />• 노쇼 시 보증금은 업체에 전달되며 평판이 하락합니다.
+            정상 참석 시 보증금은 자동으로 환불됩니다.
+            <br />노쇼 시 보증금은 업체에 전달되며 평판에 반영됩니다.
           </p>
         </div>
 

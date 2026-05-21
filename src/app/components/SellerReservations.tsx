@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "./routerCompat";
 import {
   Calendar,
   Clock,
@@ -276,7 +276,7 @@ export function SellerReservations() {
                       <Calendar size={16} className="mr-2" />
                       {format(
                         getReservationDate(reservation.date),
-                        "yyyy년 M월 d일 (E)",
+                        "yyyy년 M월 d일(E)",
                         { locale: ko }
                       )}
                     </div>
@@ -288,7 +288,7 @@ export function SellerReservations() {
 
                     <div className="flex items-center text-gray-600 text-sm">
                       <DollarSign size={16} className="mr-2" />
-                      보증금:{" "}
+                      보증금{" "}
                       <span
                         className="font-semibold ml-1"
                         style={{ color: "#D97706" }}
@@ -308,7 +308,7 @@ export function SellerReservations() {
                             color: "#2E7D32",
                           }}
                         >
-                          눌러서 인증 버튼 활성화
+                          손님 인증 버튼 활성화
                         </div>
 
                         <button
@@ -338,7 +338,7 @@ export function SellerReservations() {
                           }}
                         >
                           <p className="text-sm font-medium">
-                            인증 버튼 활성화 완료 · 고객 확인 대기 중
+                            인증 버튼 활성화 완료, 고객 확인 대기 중
                           </p>
                         </div>
 
@@ -443,7 +443,7 @@ export function SellerReservations() {
                       <Calendar size={16} className="mr-2" />
                       {format(
                         getReservationDate(reservation.date),
-                        "yyyy년 M월 d일 (E)",
+                        "yyyy년 M월 d일(E)",
                         { locale: ko }
                       )}{" "}
                       {reservation.time}
@@ -451,7 +451,7 @@ export function SellerReservations() {
 
                     <div className="flex items-center">
                       <DollarSign size={16} className="mr-2" />
-                      보증금:{" "}
+                      보증금{" "}
                       <span
                         className="font-semibold ml-1"
                         style={{

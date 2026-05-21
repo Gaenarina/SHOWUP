@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "./routerCompat";
 import { DayPicker } from "react-day-picker";
 import { ko } from "date-fns/locale";
 import { format } from "date-fns";
@@ -77,6 +77,7 @@ export function Booking() {
         <div className="text-center">
           <p className="text-gray-500 mb-4">업체 정보를 찾을 수 없습니다.</p>
           <button
+            type="button"
             onClick={() => navigate("/")}
             className="px-6 py-2 rounded-lg text-white"
             style={{ backgroundColor: "#566F2F" }}
@@ -88,6 +89,9 @@ export function Booking() {
     );
   }
 
+  const hasReservationNotice =
+    store.reservationNotice && store.reservationNotice.trim() !== "";
+
   return (
     <div className="min-h-screen p-4 pb-20">
       <div className="mb-6">
@@ -97,14 +101,25 @@ export function Booking() {
         <p className="text-gray-600">예약 날짜와 시간을 선택하세요</p>
       </div>
 
-      <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
+      <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
         <h3 className="font-semibold mb-2">업체 정보</h3>
         <p className="text-sm text-gray-600 mb-1">{store.address}</p>
         <p className="text-sm text-gray-600 mb-1">{store.description}</p>
         <p className="text-sm text-gray-600 mb-1">
-          기본 보증금: {store.baseDeposit.toFixed(3)} ETH
+          기본 보증금 {store.baseDeposit.toFixed(3)} ETH
         </p>
       </div>
+
+      {hasReservationNotice && (
+        <div className="bg-[#FFF8E7] rounded-lg p-4 shadow-sm border border-[#F0D89A] mb-6">
+          <h3 className="font-semibold mb-2" style={{ color: "#92400E" }}>
+            예약 안내사항
+          </h3>
+          <p className="text-sm text-gray-700 whitespace-pre-line leading-6">
+            {store.reservationNotice}
+          </p>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
         <h3 className="font-semibold mb-4">날짜 선택</h3>
@@ -130,14 +145,14 @@ export function Booking() {
         <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
           <p className="text-sm text-gray-600">선택한 날짜</p>
           <p className="text-lg font-semibold" style={{ color: "#566F2F" }}>
-            {format(selectedDate, "yyyy년 M월 d일 (E)", { locale: ko })}
+            {format(selectedDate, "yyyy년 M월 d일(E)", { locale: ko })}
           </p>
         </div>
       )}
 
       {selectedDate && (
         <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
-          <h3 className="font-semibold mb-4">예약 가능 시간</h3>
+          <h3 className="font-semibold mb-4">예약 가능한 시간</h3>
           <div className="grid grid-cols-3 gap-3">
             {mockTimeSlots.map((slot) => (
               <button

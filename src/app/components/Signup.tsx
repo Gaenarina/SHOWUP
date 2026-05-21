@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+﻿import { useState } from "react";
+import { Link, useNavigate } from "./routerCompat";
 import { registerUser } from "../../services/authService";
 import {
   User,
@@ -50,7 +50,7 @@ export function Signup() {
     }
 
     if (role === "seller" && (!businessName || !businessNumber)) {
-        setErrorMessage("판매자 정보인 상호명과 사업자등록번호를 입력해주세요.");
+        setErrorMessage("판매자 정보와 사업자등록번호를 입력해주세요.");
         return;
     }
 
@@ -93,13 +93,13 @@ export function Signup() {
             className="text-xs font-semibold tracking-wide"
             style={{ color: "#8A967C" }}
           >
-            신뢰 기반 예약 플랫폼
+            노쇼 방지 예약 플랫폼
           </span>
 
           <h1 className="showup-logo mt-2">ShowUp</h1>
 
           <p className="text-sm text-gray-500 mt-3">
-            예약 서비스를 이용하기 위해 회원 정보를 입력해주세요.
+            예약 보증금 관리를 위한 회원 정보를 입력해주세요.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export function Signup() {
             }}
           >
             <User size={18} />
-            <span className="text-sm font-semibold">소비자</span>
+            <span className="text-sm font-semibold">고객</span>
           </button>
 
           <button
@@ -274,7 +274,7 @@ export function Signup() {
             </div>
 
             <p className="text-xs text-gray-400 mt-2">
-              판매자 예약 관리 기능 이용을 위한 기본 확인 정보입니다.
+              판매자 예약 관리에 필요한 기본 정보입니다.
             </p>
           </div>
         )}
@@ -299,7 +299,7 @@ export function Signup() {
           </button>
 
           <p className="text-xs text-gray-400 mt-2">
-            지갑 연결은 선택 사항이며, 보증금 결제 단계에서 나중에 진행할 수 있습니다.
+            지갑 연결은 선택 사항이며, 보증금 결제 기능에서 사용할 수 있습니다.
           </p>
         </div>
 
@@ -318,7 +318,7 @@ export function Signup() {
 
         <div className="flex justify-between items-center mt-5 text-sm">
           <Link to="/" className="text-gray-500">
-            메인으로 돌아가기
+            홈으로 돌아가기
           </Link>
 
           <Link

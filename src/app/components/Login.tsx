@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+﻿import { useState } from "react";
+import { Link, useNavigate } from "./routerCompat";
 import { User, Store, Mail, Lock } from "lucide-react";
 import { getUserProfile, loginUser } from "../../services/authService";
 import type { UserRole } from "../../types/user";
@@ -32,9 +32,13 @@ export function Login() {
       }
 
       if (profile.role !== role) {
-        setErrorMessage("선택한 회원 유형과 가입 정보가 일치하지 않습니다.");
+        setErrorMessage("선택한 역할과 가입 정보가 일치하지 않습니다.");
         return;
       }
+
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userRole", profile.role);
+      localStorage.setItem("userId", user.uid);
 
       if (profile.role === "seller") {
         navigate("/seller");
@@ -57,7 +61,7 @@ export function Login() {
             className="text-xs font-semibold tracking-wide"
             style={{ color: "#8A967C" }}
           >
-            신뢰 기반 예약 플랫폼
+            노쇼 방지 예약 플랫폼
           </span>
 
           <h1 className="showup-logo mt-2">ShowUp</h1>
@@ -79,7 +83,7 @@ export function Login() {
             }}
           >
             <User size={18} />
-            <span className="text-sm font-semibold">소비자</span>
+            <span className="text-sm font-semibold">고객</span>
           </button>
 
           <button
@@ -137,7 +141,7 @@ export function Login() {
 
         <div className="flex justify-between items-center mt-5 text-sm">
           <Link to="/" className="text-gray-500">
-            메인으로 돌아가기
+            홈으로 돌아가기
           </Link>
 
           <Link

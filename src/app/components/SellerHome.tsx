@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { Link } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import {
@@ -98,7 +98,7 @@ export function SellerHome() {
 
   const getStatusText = (status: string) => {
     if (status === "pending") return "예약 요청";
-    if (status === "confirmed") return "참석 확인 대기";
+    if (status === "confirmed") return "인증 대기";
     if (status === "completed" || status === "verified") return "완료";
     if (status === "noshow") return "노쇼";
     return "예약 상태 확인";
@@ -141,18 +141,18 @@ export function SellerHome() {
   const todayTasks = [
     {
       id: "1",
-      title: "참석 확인 대기",
+      title: "인증 대기",
       description:
         waitingReservations.length > 0
-          ? `참석 확인이 필요한 예약 ${waitingReservations.length}건이 있습니다.`
-          : "현재 참석 확인 대기 예약이 없습니다.",
+          ? `인증 대기가 필요한 예약 ${waitingReservations.length}건이 있습니다.`
+          : "현재 인증 대기 중인 예약이 없습니다.",
       icon: CheckCircle,
       color: "#566F2F",
       path: "/seller/reservations",
     },
     {
       id: "2",
-      title: "새 예약 요청",
+      title: "신규 예약 요청",
       description:
         newReservationCount > 0
           ? `새로운 예약 요청 ${newReservationCount}건을 확인해주세요.`
@@ -189,7 +189,7 @@ export function SellerHome() {
           <Store size={48} className="mx-auto mb-4 text-gray-300" />
           <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
           <p className="text-gray-500 mb-5">
-            판매자 관리 페이지를 이용하려면
+            판매자 홈을 이용하려면
             <br />
             판매자 계정으로 로그인해주세요.
           </p>
@@ -214,7 +214,7 @@ export function SellerHome() {
           <Store size={48} className="mx-auto mb-4 text-gray-300" />
           <h2 className="text-xl font-bold mb-2">판매자 계정이 아닙니다</h2>
           <p className="text-gray-500 mb-5">
-            판매자 관리 페이지는 판매자 계정으로 로그인해야 이용할 수 있습니다.
+            판매자 홈은 판매자 계정으로 로그인해야 이용할 수 있습니다.
           </p>
           <Link to="/login">
             <button
@@ -235,17 +235,17 @@ export function SellerHome() {
       <div className="mb-6">
         <div className="flex flex-col gap-1">
           <span className="text-sm font-medium" style={{ color: "#718952" }}>
-            신뢰 기반 예약 플랫폼
+            노쇼 방지 예약 플랫폼
           </span>
 
           <h1 className="showup-logo mb-1">ShowUp</h1>
 
           <p className="text-base font-semibold" style={{ color: "#566F2F" }}>
-            판매자 관리 페이지
+            판매자 홈
           </p>
 
           <p className="text-sm text-gray-500">
-            예약 현황, 보증금, 참석 확인을 한눈에 관리하세요.
+            예약 현황, 보증금, 인증 대기, 매장 정보를 한눈에 관리하세요.
           </p>
         </div>
       </div>
@@ -264,7 +264,7 @@ export function SellerHome() {
               {store?.name ?? profile.businessName ?? "등록된 매장 없음"}
             </h2>
             <p className="text-sm text-gray-500">
-              {store?.available ? "오늘 영업 중 · 예약 가능" : "예약 마감"}
+              {store?.available ? "예약 가능" : "예약 마감"}
             </p>
           </div>
 
@@ -275,7 +275,7 @@ export function SellerHome() {
               color: store?.available ? "#2E7D32" : "#6B7280",
             }}
           >
-            {store?.available ? "정상 운영" : "운영 확인"}
+            {store?.available ? "운영 중" : "운영 중지"}
           </span>
         </div>
       </div>
@@ -289,7 +289,7 @@ export function SellerHome() {
 
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <Users size={24} style={{ color: "#566F2F" }} />
-          <p className="text-sm text-gray-500 mt-3">참석 확인 대기</p>
+          <p className="text-sm text-gray-500 mt-3">인증 대기</p>
           <p className="text-2xl font-bold mt-1">
             {waitingReservations.length}건
           </p>
@@ -305,14 +305,14 @@ export function SellerHome() {
 
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <AlertCircle size={24} style={{ color: "#DC2626" }} />
-          <p className="text-sm text-gray-500 mt-3">노쇼 발생</p>
+          <p className="text-sm text-gray-500 mt-3">노쇼 건수</p>
           <p className="text-2xl font-bold mt-1">{noShowCount}건</p>
         </div>
       </div>
 
       <div className="mb-6">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-bold">오늘 처리할 일</h3>
+          <h3 className="text-lg font-bold">오늘 할 일</h3>
 
           <Link
             to="/seller/notifications"
@@ -385,7 +385,7 @@ export function SellerHome() {
                   <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
                     <Clock size={14} />
                     <span>
-                      {format(getDateValue(reservation.date), "M월 d일 (E)", {
+                      {format(getDateValue(reservation.date), "M월 d일(E)", {
                         locale: ko,
                       })}{" "}
                       {reservation.time}
@@ -421,7 +421,7 @@ export function SellerHome() {
           </button>
         </Link>
 
-        <Link to="/seller/mypage">
+        <Link to="/seller/store">
           <button
             type="button"
             className="w-full py-3 rounded-xl border font-semibold"
@@ -431,7 +431,7 @@ export function SellerHome() {
               backgroundColor: "#FFFFFF",
             }}
           >
-            매장 정보
+            매장 관리
           </button>
         </Link>
       </div>

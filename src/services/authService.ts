@@ -1,4 +1,4 @@
-import {
+﻿import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -56,8 +56,8 @@ export const registerUser = async ({
       sellerId: user.uid,
       sellerName: name,
       name: businessName,
-      address: "주소 정보 없음",
-      description: "판매자 계정으로 생성된 가게입니다.",
+      address: "주소를 입력해주세요",
+      description: "예약 가능한 매장 설명을 입력해주세요.",
       baseDeposit: 0.01,
       available: true,
       storeType: "seller",

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "./routerCompat";
 import { CheckCircle, Clock, Store, ArrowLeft } from "lucide-react";
 import {
   enableVerification,
@@ -59,7 +59,7 @@ export function SellerReservationAuth() {
             className="px-6 py-3 rounded-lg text-white font-semibold"
             style={{ backgroundColor: "#566F2F" }}
           >
-            예약관리로 돌아가기
+            예약 관리로 돌아가기
           </button>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function SellerReservationAuth() {
           style={{ color: "#566F2F" }}
         >
           <ArrowLeft size={18} />
-          예약관리로 돌아가기
+          예약 관리로 돌아가기
         </button>
       </div>
 
@@ -99,14 +99,14 @@ export function SellerReservationAuth() {
           </h2>
 
           <p className="text-gray-600 mb-6">
-            소비자와 대면한 뒤 인증 버튼을 활성화해주세요.
+            고객이 현장에서 참석 인증을 진행할 수 있도록 버튼을 활성화하세요.
           </p>
 
           <div className="bg-[#FAFAF7] rounded-2xl p-4 text-left mb-6">
             <p className="text-sm text-gray-500">예약 장소</p>
             <p className="font-semibold mb-3">{reservation.storeName}</p>
 
-            <p className="text-sm text-gray-500">소비자</p>
+            <p className="text-sm text-gray-500">고객명</p>
             <p className="font-semibold mb-3">{reservation.consumerName}</p>
 
             <p className="text-sm text-gray-500">예약 시간</p>
@@ -121,14 +121,14 @@ export function SellerReservationAuth() {
               style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}
             >
               <CheckCircle className="mx-auto mb-2" size={28} />
-              <p className="font-semibold">소비자 인증 완료</p>
+              <p className="font-semibold">고객 인증 완료</p>
             </div>
           ) : isNoShow ? (
             <div
               className="rounded-2xl p-4 mb-6"
               style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
             >
-              <p className="font-semibold">인증 시간 만료로 노쇼 처리됨</p>
+              <p className="font-semibold">인증 시간이 지나 노쇼 처리되었습니다</p>
             </div>
           ) : isEnabled ? (
             <div
@@ -138,7 +138,7 @@ export function SellerReservationAuth() {
               <Clock className="mx-auto mb-2" size={28} />
               <p className="font-semibold">인증 버튼 활성화 완료</p>
               <p className="text-sm mt-1">
-                소비자는 활성화 시점부터 3분 동안 인증할 수 있습니다.
+                고객은 활성화 후 3분 안에 인증할 수 있습니다.
               </p>
             </div>
           ) : (
@@ -146,7 +146,7 @@ export function SellerReservationAuth() {
               className="rounded-2xl p-4 mb-6"
               style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
             >
-              <p className="font-semibold">아직 인증 버튼이 비활성화 상태입니다.</p>
+              <p className="font-semibold">아래 버튼을 눌러 인증을 시작하세요</p>
             </div>
           )}
         </div>
@@ -164,14 +164,14 @@ export function SellerReservationAuth() {
           }}
         >
           {isCompleted
-            ? "인증 완료됨"
+            ? "인증 완료"
             : isNoShow
-            ? "노쇼 처리됨"
+            ? "노쇼 처리"
             : isEnabled
             ? "인증 버튼 활성화 완료"
             : isSubmitting
             ? "활성화 중..."
-            : "인증 버튼 활성화하기"}
+            : "인증 활성화"}
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import {
+﻿import {
   addDoc,
   collection,
   deleteDoc,
@@ -24,9 +24,9 @@ const convertDate = (value: any) => {
 };
 
 const getReputationTitle = (noShowCount: number) => {
-  if (noShowCount === 0) return "참석왕";
+  if (noShowCount === 0) return "우수 고객";
   if (noShowCount <= 2) return "일반 고객";
-  return "노쇼왕";
+  return "노쇼 주의";
 };
 
 const mapReservation = (id: string, data: any) => {
@@ -66,7 +66,7 @@ export const createReservation = async ({
   const sellerSnap = await getDoc(doc(db, "users", sellerId));
 
   if (!consumerSnap.exists()) {
-    throw new Error("소비자 정보를 찾을 수 없습니다.");
+    throw new Error("고객 정보를 찾을 수 없습니다.");
   }
 
   const consumer = consumerSnap.data() as AppUser;
@@ -195,7 +195,7 @@ export const verifyConsumer = async (reservationId: string) => {
       verificationEnabled: false,
     });
 
-    throw new Error("인증 시간이 만료되어 노쇼 처리되었습니다.");
+    throw new Error("인증 시간이 지나 노쇼 처리되었습니다.");
   }
 
   await updateDoc(reservationRef, {

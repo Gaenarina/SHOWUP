@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+﻿import { Link, useLocation } from "./routerCompat";
 import { Home, Bell, User, CalendarCheck } from "lucide-react";
 
 export function BottomNav() {

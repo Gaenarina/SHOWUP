@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Bell, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate } from "./routerCompat";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
 import { subscribeConsumerReservations } from "../../services/reservationService";
@@ -67,7 +67,7 @@ const buildNotifications = (
         reservationId: reservation.id,
         type: "reminder",
         title: "참석 인증 필요",
-        message: `${reservation.storeName} 예약의 인증 버튼이 활성화되었습니다. 참석 인증을 완료해주세요.`,
+        message: `${reservation.storeName} 예약의 참석 인증 버튼이 활성화되었습니다. 참석 인증을 완료해주세요.`,
         timestamp: new Date(),
         read: readIds.includes(`verify-${reservation.id}`),
       });
@@ -249,7 +249,7 @@ export function Notifications() {
             {unreadCount > 0 ? (
               <p className="text-gray-600">읽지 않은 알림 {unreadCount}개</p>
             ) : (
-              <p className="text-gray-500">모든 알림을 읽었습니다.</p>
+              <p className="text-gray-500">모든 알림을 확인했습니다</p>
             )}
           </div>
 
@@ -312,7 +312,7 @@ export function Notifications() {
                   </p>
 
                   <p className="text-xs text-gray-400">
-                    {format(notification.timestamp, "M월 d일 (E) HH:mm", {
+                    {format(notification.timestamp, "M월 d일(E) HH:mm", {
                       locale: ko,
                     })}
                   </p>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { Link, useNavigate } from "./routerCompat";
 import {
   User,
   Award,
@@ -67,7 +67,7 @@ export function MyPage() {
   };
 
   const shortenWalletAddress = (walletAddress: string) => {
-    if (!walletAddress) return "연결된 지갑 없음";
+    if (!walletAddress) return "지갑 미연결";
     if (walletAddress === "connected") return "지갑 연결됨";
     if (walletAddress.length <= 12) return walletAddress;
 
@@ -100,7 +100,7 @@ export function MyPage() {
   const getReputationBadge = () => {
     if (noShowCount === 0) {
       return {
-        title: "참석왕",
+        title: "우수 고객",
         color: "#2E7D32",
         bgColor: "#E8F5E9",
         icon: <Star fill="#FFD700" color="#FFD700" size={20} />,
@@ -109,7 +109,7 @@ export function MyPage() {
 
     if (noShowCount <= 2) {
       return {
-        title: "일반 고객",
+        title: "주의 고객",
         color: "#D97706",
         bgColor: "#FEF3C7",
         icon: <TrendingUp color="#D97706" size={20} />,
@@ -117,7 +117,7 @@ export function MyPage() {
     }
 
     return {
-      title: `노쇼왕 ${"⭐".repeat(Math.min(noShowCount - 2, 3))}`,
+      title: `노쇼 주의 ${"!".repeat(Math.min(noShowCount - 2, 3))}`,
       color: "#DC2626",
       bgColor: "#FEE2E2",
       icon: <TrendingDown color="#DC2626" size={20} />,
@@ -141,7 +141,7 @@ export function MyPage() {
           <User size={48} className="mx-auto mb-4 text-gray-300" />
           <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
           <p className="text-gray-500 mb-5">
-            마이페이지를 확인하려면 로그인해주세요.
+            마이페이지를 이용하려면 로그인해주세요.
           </p>
           <Link to="/login">
             <button
@@ -203,7 +203,7 @@ export function MyPage() {
       <div className="bg-white rounded-lg p-6 shadow-sm mb-4">
         <div className="flex items-center gap-2 mb-4">
           <Award size={20} style={{ color: "#566F2F" }} />
-          <h3 className="font-semibold">평판 통계</h3>
+          <h3 className="font-semibold">평판 현황</h3>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -243,7 +243,7 @@ export function MyPage() {
           </p>
         </div>
         <p className="text-xs" style={{ color: "#92400E" }}>
-          노쇼 {noShowCount}회 기준 다음 예약 시 적용되는 보증금
+          노쇼 {noShowCount}회 기준 다음 예약에 적용될 보증금입니다.
         </p>
       </div>
 
@@ -277,7 +277,7 @@ export function MyPage() {
         <Link to="/seller" className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Store size={20} style={{ color: "#566F2F" }} />
-            <p className="font-medium">판매자 모드</p>
+            <p className="font-medium">판매자 페이지</p>
           </div>
           <ChevronRight className="text-gray-400" />
         </Link>

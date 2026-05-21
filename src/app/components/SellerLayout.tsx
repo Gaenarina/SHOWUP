@@ -1,7 +1,10 @@
-import { Outlet, Link, useLocation } from "react-router";
+﻿"use client";
+
+import type { ReactNode } from "react";
+import { Link, useLocation } from "./routerCompat";
 import { Home, CalendarCheck, Bell, User } from "lucide-react";
 
-export function SellerLayout() {
+export function SellerLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -20,7 +23,7 @@ export function SellerLayout() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#fffdf7" }}>
       <main className="flex-1 pb-20">
-        <Outlet />
+        {children}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">

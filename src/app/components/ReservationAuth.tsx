@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "./routerCompat";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
 import {
   expireReservationIfNeeded,
@@ -94,7 +94,7 @@ export function ReservationAuth() {
             className="px-6 py-3 rounded-lg text-white font-semibold"
             style={{ backgroundColor: "#566F2F" }}
           >
-            예약관리로 돌아가기
+            예약 현황으로 돌아가기
           </button>
         </div>
       </div>
@@ -123,7 +123,7 @@ export function ReservationAuth() {
           style={{ color: "#566F2F" }}
         >
           <ArrowLeft size={18} />
-          예약관리로 돌아가기
+          예약 현황으로 돌아가기
         </button>
       </div>
 
@@ -153,7 +153,7 @@ export function ReservationAuth() {
           </h2>
 
           <p className="text-gray-600 mb-6">
-            판매자가 버튼을 활성화하면 3분 안에 인증해야 합니다.
+            판매자가 인증 버튼을 활성화한 뒤 3분 안에 인증을 완료하세요.
           </p>
 
           <div className="bg-[#FAFAF7] rounded-2xl p-4 text-left mb-6">
@@ -181,7 +181,7 @@ export function ReservationAuth() {
               <XCircle className="mx-auto mb-2" size={28} />
               <p className="font-semibold">노쇼 처리</p>
               <p className="text-sm mt-1">
-                인증 제한 시간이 지나 노쇼 처리되었습니다.
+                인증 가능한 시간이 지나 노쇼 처리되었습니다.
               </p>
             </div>
           ) : canVerify ? (
@@ -224,7 +224,7 @@ export function ReservationAuth() {
           {isCompleted
             ? "인증 완료"
             : isNoShow
-            ? "노쇼 처리됨"
+            ? "노쇼 처리"
             : isSubmitting
             ? "인증 중..."
             : canVerify

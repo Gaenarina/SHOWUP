@@ -7,7 +7,10 @@ export type Store = {
   name: string;
   address: string;
   description: string;
+  reservationNotice?: string;
   baseDeposit: number;
   available: boolean;
   storeType: StoreType;
+  createdAt?: unknown;
+  updatedAt?: unknown;
 };

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { Link, useNavigate } from "./routerCompat";
 import { Bell, CheckCircle, AlertCircle, Store } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
@@ -70,7 +70,7 @@ const buildSellerNotifications = (
         id: `attendance-${reservation.id}`,
         reservationId: reservation.id,
         type: "attendance_waiting",
-        title: "참석 확인 활성화 필요",
+        title: "참석 인증 활성화 필요",
         message: `${reservation.consumerName}님의 예약 인증 버튼 활성화가 필요합니다.`,
         time: getRelativeTime(createdAt),
         read: readIds.includes(`attendance-${reservation.id}`),
@@ -206,7 +206,7 @@ export function SellerNotifications() {
           <Store size={48} className="mx-auto mb-4 text-gray-300" />
           <h2 className="text-xl font-bold mb-2">로그인이 필요합니다</h2>
           <p className="text-gray-500 mb-5">
-            판매자 알림을 확인하려면 
+            판매자 알림을 확인하려면
             <br />
             판매자 계정으로 로그인해주세요.
           </p>
@@ -236,7 +236,7 @@ export function SellerNotifications() {
             {unreadCount > 0 ? (
               <p className="text-gray-600">읽지 않은 알림 {unreadCount}개</p>
             ) : (
-              <p className="text-gray-500">모든 알림을 읽었습니다.</p>
+              <p className="text-gray-500">모든 알림을 확인했습니다</p>
             )}
           </div>
 

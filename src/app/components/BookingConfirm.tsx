@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Wallet, AlertCircle } from "lucide-react";
@@ -118,7 +118,7 @@ export function BookingConfirm() {
           <div className="flex justify-between">
             <span className="text-gray-600">날짜</span>
             <span className="font-medium">
-              {format(new Date(date), "yyyy년 M월 d일 (E)", { locale: ko })}
+              {format(new Date(date), "yyyy년 M월 d일(E)", { locale: ko })}
             </span>
           </div>
 
@@ -181,8 +181,7 @@ export function BookingConfirm() {
               노쇼 기록이 있습니다
             </p>
             <p className="text-xs mt-1" style={{ color: "#991B1B" }}>
-              노쇼가 누적되면 보증금이 계속 증가합니다. 약속을 꼭
-              지켜주세요!
+              노쇼가 누적되면 보증금이 계속 증가합니다. 약속을 꼭 지켜주세요!
             </p>
           </div>
         </div>

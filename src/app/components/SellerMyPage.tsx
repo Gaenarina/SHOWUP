@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { Link, useNavigate } from "./routerCompat";
 import {
   Store,
   Wallet,
@@ -62,7 +62,7 @@ export function SellerMyPage() {
   };
 
   const shortenWalletAddress = (walletAddress: string) => {
-    if (!walletAddress) return "연결된 지갑 없음";
+    if (!walletAddress) return "지갑 미연결";
     if (walletAddress === "connected") return "지갑 연결됨";
     if (walletAddress.length <= 12) return walletAddress;
 
@@ -146,7 +146,7 @@ export function SellerMyPage() {
             <div>
               <p className="font-medium">사업자등록번호</p>
               <p className="text-sm text-gray-600">
-                {profile.businessNumber ?? "등록된 정보 없음"}
+                {profile.businessNumber ?? "등록 정보 없음"}
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function SellerMyPage() {
         <Link to="/" className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Home size={20} style={{ color: "#566F2F" }} />
-            <p className="font-medium">소비자 모드로 전환</p>
+            <p className="font-medium">고객 화면으로 이동</p>
           </div>
           <ChevronRight className="text-gray-400" />
         </Link>

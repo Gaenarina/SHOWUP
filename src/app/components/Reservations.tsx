@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+﻿import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Calendar, Clock, MapPin, CheckCircle, XCircle, CalendarCheck, } from "lucide-react";
@@ -238,7 +238,7 @@ export function Reservations() {
                       <Calendar size={16} className="mr-2" />
                       {format(
                         getReservationDate(reservation.date),
-                        "yyyy년 M월 d일 (E)",
+                        "yyyy년 M월 d일(E)",
                         { locale: ko }
                       )}
                     </div>
@@ -251,7 +251,7 @@ export function Reservations() {
 
                   <div className="flex justify-between items-center pt-3 border-t">
                     <span className="text-sm text-gray-600">
-                      예치 보증금:{" "}
+                      예치 보증금{" "}
                       <span
                         className="font-semibold"
                         style={{ color: "#D97706" }}
@@ -349,7 +349,7 @@ export function Reservations() {
                     <Calendar size={16} className="mr-2" />
                     {format(
                       getReservationDate(reservation.date),
-                      "yyyy년 M월 d일 (E)",
+                      "yyyy년 M월 d일(E)",
                       { locale: ko }
                     )}
                   </div>
@@ -362,7 +362,7 @@ export function Reservations() {
 
                 <div className="pt-3 border-t">
                   <span className="text-sm text-gray-600">
-                    보증금:{" "}
+                    보증금{" "}
                     <span
                       className="font-semibold"
                       style={{

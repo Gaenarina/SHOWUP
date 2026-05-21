@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, Link } from "react-router";
+﻿import { useNavigate, useLocation, Link } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { CheckCircle2 } from "lucide-react";
@@ -43,7 +43,7 @@ export function BookingComplete() {
           예약이 완료되었습니다
         </h2>
         <p className="text-center text-gray-600 mb-6">
-          예약 정보가 스마트 컨트랙트에 기록되었습니다.
+          예약 정보가 안전하게 기록되었습니다.
         </p>
 
         {/* Booking Details */}
@@ -57,7 +57,7 @@ export function BookingComplete() {
             <div>
               <p className="text-sm text-gray-600 mb-1">예약 시간</p>
               <p className="font-semibold">
-                {format(new Date(date), "yyyy년 M월 d일 (E)", { locale: ko })} {time}
+                {format(new Date(date), "yyyy년 M월 d일(E)", { locale: ko })} {time}
               </p>
             </div>
             <div>
@@ -75,7 +75,7 @@ export function BookingComplete() {
           style={{ backgroundColor: '#FEF3C7', border: '1px solid #D97706' }}
         >
           <p className="text-sm font-medium" style={{ color: '#92400E' }}>
-            ⚠️ 예약 당일 양측 참석 인증이 필요합니다.
+            예약 당일 현장 참석 인증이 필요합니다.
           </p>
         </div>
 

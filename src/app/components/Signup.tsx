@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { useAccount } from "wagmi";
 import { Link, useNavigate } from "./routerCompat";
 import { registerUser } from "../../services/authService";
 import {
@@ -8,10 +9,10 @@ import {
   Lock,
   Phone,
   Calendar,
-  Wallet,
   Building2,
   BadgeCheck,
 } from "lucide-react";
+import { WalletConnectButton } from "./WalletConnectButton";
 
 export function Signup() {
   const [role, setRole] = useState<"consumer" | "seller">("consumer");
@@ -29,10 +30,10 @@ export function Signup() {
   const [businessName, setBusinessName] = useState("");
   const [businessNumber, setBusinessNumber] = useState("");
 
-  const [walletConnected, setWalletConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const navigate = useNavigate();
+  const { address: walletAddress, isConnected } = useAccount();
 
   const handleSignup = async () => {
     if (
@@ -71,7 +72,7 @@ export function Signup() {
         birthDate: `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`,
         businessName: role === "seller" ? businessName : null,
         businessNumber: role === "seller" ? businessNumber : null,
-        walletAddress: walletConnected ? "connected" : "",
+        walletAddress: walletAddress ?? "",
         });
 
         navigate("/login");
@@ -79,10 +80,6 @@ export function Signup() {
         console.error(error);
         setErrorMessage("회원가입 중 오류가 발생했습니다.");
     }
-  };
-
-  const handleWalletConnect = () => {
-    setWalletConnected(true);
   };
 
   return (
@@ -115,7 +112,7 @@ export function Signup() {
             }}
           >
             <User size={18} />
-            <span className="text-sm font-semibold">고객</span>
+            <span className="text-sm font-semibold">소비자</span>
           </button>
 
           <button
@@ -284,19 +281,15 @@ export function Signup() {
             지갑 연결
           </p>
 
-          <button
-            type="button"
-            onClick={handleWalletConnect}
+          <WalletConnectButton
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold"
             style={{
-              borderColor: walletConnected ? "#566F2F" : "#D1D5DB",
-              color: walletConnected ? "#566F2F" : "#6B7280",
-              backgroundColor: walletConnected ? "#F2F7EC" : "#FFFFFF",
+              borderColor: isConnected ? "#566F2F" : "#D1D5DB",
+              color: isConnected ? "#566F2F" : "#6B7280",
+              backgroundColor: isConnected ? "#F2F7EC" : "#FFFFFF",
             }}
-          >
-            <Wallet size={18} />
-            {walletConnected ? "지갑 연결 완료" : "지갑 연결하기 (선택)"}
-          </button>
+            iconSize={18}
+          />
 
           <p className="text-xs text-gray-400 mt-2">
             지갑 연결은 선택 사항이며, 보증금 결제 기능에서 사용할 수 있습니다.

@@ -19,6 +19,7 @@ export type SellerStoreInput = {
   address: string;
   description: string;
   reservationNotice: string;
+  sellerWalletAddress?: string;
   baseDeposit: number;
   available: boolean;
   allowPartySize?: boolean;
@@ -26,9 +27,15 @@ export type SellerStoreInput = {
   maxPartySize?: number;
 };
 
-const DEMO_MASTER_UID = process.env.NEXT_PUBLIC_DEMO_MASTER_UID ?? "";
+export const DEMO_MASTER_UID = process.env.NEXT_PUBLIC_DEMO_MASTER_UID ?? "";
 const DEMO_MASTER_NAME =
   process.env.NEXT_PUBLIC_DEMO_MASTER_NAME ?? "SHOWUP 데모 관리자";
+
+export const DEMO_STORE_IDS = [
+  "default-cafe-on",
+  "default-study-cafe",
+  "default-restaurant",
+];
 
 const defaultStores = [
   {
@@ -40,6 +47,7 @@ const defaultStores = [
     description: "조용한 분위기의 카페입니다.",
     reservationNotice:
       "예약 시간 10분 전까지 도착해주세요. 취소가 필요한 경우 미리 연락해주세요.",
+    sellerWalletAddress: process.env.NEXT_PUBLIC_DEMO_SELLER_WALLET_ADDRESS ?? "",
     baseDeposit: 0.01,
     available: true,
     storeType: "default" as const,
@@ -56,6 +64,7 @@ const defaultStores = [
     description: "집중하기 좋은 스터디 공간입니다.",
     reservationNotice:
       "예약한 시간에 맞춰 입장해주세요. 조용한 이용 시간을 지켜주세요.",
+    sellerWalletAddress: process.env.NEXT_PUBLIC_DEMO_SELLER_WALLET_ADDRESS ?? "",
     baseDeposit: 0.015,
     available: true,
     storeType: "default" as const,
@@ -72,6 +81,7 @@ const defaultStores = [
     description: "예약제로 운영되는 식당입니다.",
     reservationNotice:
       "예약 인원에 맞춰 방문해주세요. 무단 불참 시 노쇼로 처리될 수 있습니다.",
+    sellerWalletAddress: process.env.NEXT_PUBLIC_DEMO_SELLER_WALLET_ADDRESS ?? "",
     baseDeposit: 0.02,
     available: true,
     storeType: "default" as const,
@@ -146,6 +156,25 @@ export const subscribeSellerStore = (
   });
 };
 
+export const subscribeDemoStores = (callback: (stores: Store[]) => void) => {
+  const q = query(collection(db, "stores"), orderBy("createdAt", "asc"));
+
+  return onSnapshot(q, (snapshot) => {
+    const stores = snapshot.docs
+      .map((item) => ({
+        id: item.id,
+        ...item.data(),
+      }))
+      .filter((store) => DEMO_STORE_IDS.includes(store.id)) as Store[];
+
+    callback(
+      DEMO_STORE_IDS.map((storeId) =>
+        stores.find((store) => store.id === storeId)
+      ).filter(Boolean) as Store[]
+    );
+  });
+};
+
 export const saveSellerStore = async (
   storeData: SellerStoreInput,
   storeId?: string
@@ -171,4 +200,31 @@ export const saveSellerStore = async (
   );
 
   return targetStoreId;
+};
+
+export const saveDemoStore = async (
+  storeId: string,
+  storeData: SellerStoreInput
+) => {
+  const storeRef = doc(db, "stores", storeId);
+  const snapshot = await getDoc(storeRef);
+
+  await setDoc(
+    storeRef,
+    {
+      ...storeData,
+      id: storeId,
+      baseDeposit: Number(storeData.baseDeposit),
+      available: Boolean(storeData.available),
+      allowPartySize: Boolean(storeData.allowPartySize),
+      minPartySize: Number(storeData.minPartySize ?? 1),
+      maxPartySize: Number(storeData.maxPartySize ?? 1),
+      storeType: "default",
+      updatedAt: serverTimestamp(),
+      ...(snapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+    },
+    { merge: true }
+  );
+
+  return storeId;
 };

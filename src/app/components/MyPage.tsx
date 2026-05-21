@@ -3,7 +3,6 @@ import { Link, useNavigate } from "./routerCompat";
 import {
   User,
   Award,
-  Wallet,
   Calendar,
   LogOut,
   ChevronRight,
@@ -18,6 +17,7 @@ import { getUserProfile, logoutUser } from "../../services/authService";
 import { subscribeConsumerReservations } from "../../services/reservationService";
 import type { AppUser } from "../../types/user";
 import type { Reservation } from "../../types/reservation";
+import { WalletStatusRow } from "./WalletStatusRow";
 
 export function MyPage() {
   const [userData, setUserData] = useState<AppUser | null>(null);
@@ -61,17 +61,20 @@ export function MyPage() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await logoutUser();
-    navigate("/login");
+  const clearLoginStorage = () => {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
   };
 
-  const shortenWalletAddress = (walletAddress: string) => {
-    if (!walletAddress) return "지갑 미연결";
-    if (walletAddress === "connected") return "지갑 연결됨";
-    if (walletAddress.length <= 12) return walletAddress;
+  const handleLogout = async () => {
+    await logoutUser();
 
-    return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+    clearLoginStorage();
+    setUserData(null);
+    setReservations([]);
+
+    navigate("/login");
   };
 
   const totalReservations = reservations.length;
@@ -248,20 +251,7 @@ export function MyPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm mb-4 divide-y">
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Wallet size={20} style={{ color: "#566F2F" }} />
-            <div>
-              <p className="font-medium">
-                {userData.walletAddress ? "지갑 연결됨" : "지갑 미연결"}
-              </p>
-              <p className="text-sm text-gray-600">
-                {shortenWalletAddress(userData.walletAddress)}
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="text-gray-400" />
-        </div>
+        <WalletStatusRow savedWalletAddress={userData.walletAddress} />
 
         <Link
           to="/reservations"

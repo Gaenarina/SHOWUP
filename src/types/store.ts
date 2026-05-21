@@ -8,6 +8,7 @@ export type Store = {
   address: string;
   description: string;
   reservationNotice?: string;
+  sellerWalletAddress?: string;
   baseDeposit: number;
   available: boolean;
   storeType: StoreType;

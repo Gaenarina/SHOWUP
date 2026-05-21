@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { Link, useNavigate } from "./routerCompat";
 import { User, Store, Mail, Lock } from "lucide-react";
-import { getUserProfile, loginUser } from "../../services/authService";
+import { getUserProfile, loginUser, logoutUser } from "../../services/authService";
 import type { UserRole } from "../../types/user";
 
 export function Login() {
@@ -12,6 +12,12 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  const clearLoginStorage = () => {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -27,11 +33,15 @@ export function Login() {
       const profile = await getUserProfile(user.uid);
 
       if (!profile) {
+        await logoutUser();
+        clearLoginStorage();
         setErrorMessage("사용자 정보를 찾을 수 없습니다.");
         return;
       }
 
       if (profile.role !== role) {
+        await logoutUser();
+        clearLoginStorage();
         setErrorMessage("선택한 역할과 가입 정보가 일치하지 않습니다.");
         return;
       }
@@ -83,7 +93,7 @@ export function Login() {
             }}
           >
             <User size={18} />
-            <span className="text-sm font-semibold">고객</span>
+            <span className="text-sm font-semibold">소비자</span>
           </button>
 
           <button

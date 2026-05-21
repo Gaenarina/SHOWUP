@@ -123,6 +123,7 @@ export function Booking() {
       state: {
         storeId: store.id,
         sellerId: store.sellerId,
+        sellerWalletAddress: store.sellerWalletAddress,
         storeName: store.name,
         address: store.address,
         baseDeposit: store.baseDeposit,

@@ -2,7 +2,6 @@
 import { Link, useNavigate } from "./routerCompat";
 import {
   Store,
-  Wallet,
   LogOut,
   ChevronRight,
   Home,
@@ -15,6 +14,7 @@ import { getUserProfile, logoutUser } from "../../services/authService";
 import { subscribeSellerStore } from "../../services/storeService";
 import type { AppUser } from "../../types/user";
 import type { Store as StoreType } from "../../types/store";
+import { WalletStatusRow } from "./WalletStatusRow";
 
 export function SellerMyPage() {
   const [profile, setProfile] = useState<AppUser | null>(null);
@@ -59,14 +59,6 @@ export function SellerMyPage() {
   const handleLogout = async () => {
     await logoutUser();
     navigate("/login");
-  };
-
-  const shortenWalletAddress = (walletAddress: string) => {
-    if (!walletAddress) return "지갑 미연결";
-    if (walletAddress === "connected") return "지갑 연결됨";
-    if (walletAddress.length <= 12) return walletAddress;
-
-    return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
   };
 
   if (isLoading) {
@@ -152,20 +144,7 @@ export function SellerMyPage() {
           </div>
         </div>
 
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Wallet size={20} style={{ color: "#566F2F" }} />
-            <div>
-              <p className="font-medium">
-                {profile.walletAddress ? "지갑 연결됨" : "지갑 미연결"}
-              </p>
-              <p className="text-sm text-gray-600">
-                {shortenWalletAddress(profile.walletAddress)}
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="text-gray-400" />
-        </div>
+        <WalletStatusRow savedWalletAddress={profile.walletAddress} />
 
         <Link to="/" className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

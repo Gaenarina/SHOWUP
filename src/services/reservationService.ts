@@ -23,6 +23,23 @@ export const DEMO_STORE_IDS = [
   "default-restaurant",
 ];
 
+type CreateReservationInput = {
+  consumerId: string;
+  sellerId: string;
+  storeId: string;
+  storeName: string;
+  address: string;
+  date: Date;
+  time: string;
+  deposit: number;
+  partySize?: number;
+  contractAddress?: string;
+  txHash?: string;
+  chainAppointmentId?: string;
+  consumerWalletAddress?: string;
+  sellerWalletAddress?: string;
+};
+
 const convertDate = (value: any) => {
   if (!value) return null;
   if (value?.toDate) return value.toDate();
@@ -46,6 +63,7 @@ const mapReservation = (id: string, data: any) => {
 };
 
 export const createReservation = async ({
+  consumerId,
   sellerId,
   storeId,
   storeName,
@@ -54,41 +72,39 @@ export const createReservation = async ({
   time,
   deposit,
   partySize = 1,
-}: {
-  sellerId: string;
-  storeId: string;
-  storeName: string;
-  address: string;
-  date: Date;
-  time: string;
-  deposit: number;
-  partySize?: number;
-}) => {
+  contractAddress = "",
+  txHash = "",
+  chainAppointmentId = "",
+  consumerWalletAddress = "",
+  sellerWalletAddress = "",
+}: CreateReservationInput) => {
   const currentUser = auth.currentUser;
 
   if (!currentUser) {
     throw new Error("로그인이 필요합니다.");
   }
 
+  if (consumerId !== currentUser.uid) {
+    throw new Error("로그인한 사용자와 예약자 정보가 일치하지 않습니다.");
+  }
+
   const consumerSnap = await getDoc(doc(db, "users", currentUser.uid));
-  const sellerSnap = await getDoc(doc(db, "users", sellerId));
 
   if (!consumerSnap.exists()) {
     throw new Error("고객 정보를 찾을 수 없습니다.");
   }
 
   const consumer = consumerSnap.data() as AppUser;
-  const seller = sellerSnap.exists() ? (sellerSnap.data() as AppUser) : null;
   const noShowCount = consumer.noShowCount ?? 0;
 
   const docRef = await addDoc(collection(db, "reservations"), {
+    consumerId,
+    sellerId,
     storeId,
     storeName,
     address,
-    consumerId: currentUser.uid,
-    sellerId,
     consumerName: consumer.name,
-    sellerName: seller?.name ?? storeName,
+    sellerName: storeName,
     date,
     time,
     deposit,
@@ -108,8 +124,11 @@ export const createReservation = async ({
       attendanceRate: 100,
     },
 
-    contractAddress: "",
-    txHash: "",
+    contractAddress,
+    txHash,
+    chainAppointmentId,
+    consumerWalletAddress,
+    sellerWalletAddress,
     createdAt: serverTimestamp(),
   });
 

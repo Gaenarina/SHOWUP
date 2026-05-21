@@ -3,9 +3,54 @@ import { useNavigate, useLocation } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Wallet, AlertCircle } from "lucide-react";
+import { isAddress, parseEther } from "viem";
+import { useAccount, useWriteContract } from "wagmi";
 import { auth } from "../../firebase";
 import { getUserProfile } from "../../services/authService";
 import { createReservation } from "../../services/reservationService";
+import { getStoreById } from "../../services/storeService";
+import {
+  NO_SHOW_DEPOSIT_ADDRESS,
+  noShowDepositAbi,
+} from "../../services/web3/contracts";
+import { WalletConnectButton } from "./WalletConnectButton";
+
+function normalizeTimeValue(value: string) {
+  const trimmed = String(value || "").trim();
+
+  const amPmMatch = trimmed.match(/^(오전|오후)\s*(\d{1,2})(?::(\d{2}))?/);
+  if (amPmMatch) {
+    const period = amPmMatch[1];
+    let hour = Number(amPmMatch[2]);
+    const minute = amPmMatch[3] || "00";
+
+    if (period === "오후" && hour < 12) hour += 12;
+    if (period === "오전" && hour === 12) hour = 0;
+
+    return `${String(hour).padStart(2, "0")}:${minute}`;
+  }
+
+  const hourTextMatch = trimmed.match(/^(\d{1,2})시(?:\s*(\d{1,2})분)?/);
+  if (hourTextMatch) {
+    const hour = hourTextMatch[1];
+    const minute = hourTextMatch[2] || "00";
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(
+      2,
+      "0"
+    )}`;
+  }
+
+  if (/^\d{1,2}$/.test(trimmed)) {
+    return `${trimmed.padStart(2, "0")}:00`;
+  }
+
+  if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+    const [hour, minute] = trimmed.split(":");
+    return `${hour.padStart(2, "0")}:${minute}`;
+  }
+
+  return trimmed;
+}
 
 export function BookingConfirm() {
   const navigate = useNavigate();
@@ -14,6 +59,7 @@ export function BookingConfirm() {
   const {
     storeId,
     sellerId,
+    sellerWalletAddress: routeSellerWalletAddress = "",
     storeName,
     address,
     baseDeposit = 0.01,
@@ -22,12 +68,18 @@ export function BookingConfirm() {
     partySize = 1,
   } = location.state || {};
 
-  const [walletConnected, setWalletConnected] = useState(false);
   const [userNoShowCount, setUserNoShowCount] = useState(0);
+  const [sellerWalletAddress, setSellerWalletAddress] = useState(
+    routeSellerWalletAddress
+  );
+  const [walletError, setWalletError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { address: walletAddress, isConnected } = useAccount();
+  const { writeContractAsync } = useWriteContract();
 
   const penaltyDeposit = userNoShowCount * 0.005;
   const totalDeposit = baseDeposit + penaltyDeposit;
+  const walletConnected = isConnected && Boolean(walletAddress);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -35,12 +87,20 @@ export function BookingConfirm() {
 
       if (!currentUser) return;
 
-      const profile = await getUserProfile(currentUser.uid);
-      setUserNoShowCount(profile?.noShowCount ?? 0);
+      const consumerProfile = await getUserProfile(currentUser.uid);
+      const store = storeId ? await getStoreById(storeId) : null;
+
+      setUserNoShowCount(consumerProfile?.noShowCount ?? 0);
+      setSellerWalletAddress(
+        routeSellerWalletAddress ||
+          store?.sellerWalletAddress ||
+          (store as any)?.walletAddress ||
+          ""
+      );
     };
 
     loadUserProfile();
-  }, []);
+  }, [routeSellerWalletAddress, storeId]);
 
   if (!storeId || !sellerId || !storeName || !date || !time) {
     return (
@@ -59,11 +119,73 @@ export function BookingConfirm() {
     );
   }
 
+  const reservationDate = new Date(date);
+  const reservationDateText = format(reservationDate, "yyyy-MM-dd");
+  const normalizedTime = normalizeTimeValue(time);
+  const reservationDateTime = new Date(
+    `${reservationDateText}T${normalizedTime}:00`
+  );
+  const reservationTime = Math.floor(reservationDateTime.getTime() / 1000);
+
   const handleConfirmBooking = async () => {
     try {
+      setWalletError("");
+
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        setWalletError("예약을 확정하려면 먼저 로그인해주세요.");
+        return;
+      }
+
+      if (!walletAddress) {
+        setWalletError("보증금 예치를 위해 MetaMask 지갑을 먼저 연결해주세요.");
+        return;
+      }
+
+      if (!NO_SHOW_DEPOSIT_ADDRESS) {
+        setWalletError("NoShowDeposit 컨트랙트 주소가 설정되지 않았습니다.");
+        return;
+      }
+
+      const normalizedSellerWalletAddress = sellerWalletAddress.trim();
+
+      if (!isAddress(normalizedSellerWalletAddress)) {
+        setWalletError("판매자 지갑 주소가 없거나 올바르지 않습니다.");
+        return;
+      }
+
+      if (!Number.isFinite(reservationTime)) {
+        setWalletError("예약 시간이 올바르지 않습니다.");
+        return;
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+
+      if (reservationTime <= now) {
+        setWalletError("현재 시간보다 이후 시간만 예약할 수 있습니다.");
+        return;
+      }
+
       setIsSubmitting(true);
 
+      const chainAppointmentId = BigInt(Date.now());
+
+      const txHash = await writeContractAsync({
+        address: NO_SHOW_DEPOSIT_ADDRESS,
+        abi: noShowDepositAbi,
+        functionName: "createAndPayDeposit",
+        args: [
+          chainAppointmentId,
+          normalizedSellerWalletAddress,
+          BigInt(reservationTime),
+        ],
+        value: parseEther(totalDeposit.toFixed(18)),
+        gas: BigInt(1000000),
+      });
+
       const reservationId = await createReservation({
+        consumerId: currentUser.uid,
         sellerId,
         storeId,
         storeName,
@@ -72,6 +194,11 @@ export function BookingConfirm() {
         time,
         deposit: totalDeposit,
         partySize: Number(partySize) || 1,
+        contractAddress: NO_SHOW_DEPOSIT_ADDRESS,
+        txHash,
+        chainAppointmentId: chainAppointmentId.toString(),
+        consumerWalletAddress: walletAddress,
+        sellerWalletAddress: normalizedSellerWalletAddress,
       });
 
       navigate("/booking/complete", {
@@ -148,9 +275,7 @@ export function BookingConfirm() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between" style={{ color: "#92400E" }}>
             <span>기본 보증금</span>
-            <span className="font-semibold">
-              {baseDeposit.toFixed(3)} ETH
-            </span>
+            <span className="font-semibold">{baseDeposit.toFixed(3)} ETH</span>
           </div>
 
           <div className="flex justify-between" style={{ color: "#92400E" }}>
@@ -189,22 +314,19 @@ export function BookingConfirm() {
               노쇼 기록이 있습니다
             </p>
             <p className="text-xs mt-1" style={{ color: "#991B1B" }}>
-              노쇼가 누적되면 보증금이 계속 증가합니다. 약속을 꼭 지켜주세요!
+              노쇼가 누적되면 보증금이 계속 증가합니다. 약속을 꼭
+              지켜주세요!
             </p>
           </div>
         </div>
       )}
 
       {!walletConnected ? (
-        <button
-          type="button"
-          onClick={() => setWalletConnected(true)}
+        <WalletConnectButton
           className="w-full py-4 rounded-lg font-semibold text-lg shadow-md mb-4 flex items-center justify-center gap-2"
           style={{ backgroundColor: "#566F2F", color: "white" }}
-        >
-          <Wallet size={24} />
-          지갑 연결
-        </button>
+          iconSize={24}
+        />
       ) : (
         <div
           className="bg-white rounded-lg p-4 shadow-sm mb-4 border-2"
@@ -216,9 +338,13 @@ export function BookingConfirm() {
               지갑 연결됨
             </span>
           </div>
-          <p className="text-sm text-gray-600">0x1234...5678</p>
+          <p className="text-sm text-gray-600">
+            {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+          </p>
         </div>
       )}
+
+      {walletError && <p className="text-sm text-red-500 mb-4">{walletError}</p>}
 
       <button
         type="button"

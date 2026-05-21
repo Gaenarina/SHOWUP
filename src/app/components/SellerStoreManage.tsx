@@ -1,5 +1,8 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "./routerCompat";
+import { useRef } from "react";
+import { isAddress } from "viem";
+import { useAccount } from "wagmi";
 import {
   Store,
   MapPin,
@@ -10,13 +13,20 @@ import {
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
-import { getUserProfile } from "../../services/authService";
 import {
+  getUserProfile,
+  updateUserWalletAddress,
+} from "../../services/authService";
+import {
+  DEMO_MASTER_UID,
   saveSellerStore,
+  saveDemoStore,
+  subscribeDemoStores,
   subscribeSellerStore,
 } from "../../services/storeService";
 import type { AppUser } from "../../types/user";
 import type { Store as StoreType } from "../../types/store";
+import { WalletConnectButton } from "./WalletConnectButton";
 
 type StoreForm = {
   name: string;
@@ -41,10 +51,30 @@ export function SellerStoreManage() {
 
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [store, setStore] = useState<StoreType | null>(null);
+  const [managedStores, setManagedStores] = useState<StoreType[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState("");
   const [form, setForm] = useState<StoreForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const { address: connectedWalletAddress } = useAccount();
+  const selectedStoreIdRef = useRef("");
+
+  const isDemoMaster = profile?.uid === DEMO_MASTER_UID;
+
+  const applyStoreToForm = (storeData: StoreType) => {
+    setForm({
+      name: storeData.name ?? "",
+      address: storeData.address ?? "",
+      description: storeData.description ?? "",
+      reservationNotice: storeData.reservationNotice ?? "",
+      baseDeposit: String(storeData.baseDeposit ?? 0.01),
+      available: Boolean(storeData.available),
+    });
+    setStore(storeData);
+    setSelectedStoreId(storeData.id);
+    selectedStoreIdRef.current = storeData.id;
+  };
 
   useEffect(() => {
     let unsubscribeStore: (() => void) | undefined;
@@ -70,18 +100,33 @@ export function SellerStoreManage() {
         return;
       }
 
+      if (userProfile.uid === DEMO_MASTER_UID) {
+        unsubscribeStore = subscribeDemoStores((storeList) => {
+          setManagedStores(storeList);
+
+          const nextStore =
+            storeList.find((item) => item.id === selectedStoreIdRef.current) ??
+            storeList[0] ??
+            null;
+
+          if (nextStore) {
+            applyStoreToForm(nextStore);
+          } else {
+            setStore(null);
+          }
+
+          setIsLoading(false);
+        });
+
+        return;
+      }
+
       unsubscribeStore = subscribeSellerStore(user.uid, (storeData) => {
+        setManagedStores([]);
         setStore(storeData);
 
         if (storeData) {
-          setForm({
-            name: storeData.name ?? "",
-            address: storeData.address ?? "",
-            description: storeData.description ?? "",
-            reservationNotice: storeData.reservationNotice ?? "",
-            baseDeposit: String(storeData.baseDeposit ?? 0.01),
-            available: Boolean(storeData.available),
-          });
+          applyStoreToForm(storeData);
         } else {
           setForm({
             ...initialForm,
@@ -112,6 +157,14 @@ export function SellerStoreManage() {
     }));
   };
 
+  const handleSelectStore = (storeId: string) => {
+    const nextStore = managedStores.find((item) => item.id === storeId);
+
+    if (!nextStore || !profile) return;
+
+    applyStoreToForm(nextStore);
+  };
+
   const handleSave = async () => {
     if (!profile || profile.role !== "seller") return;
 
@@ -137,23 +190,45 @@ export function SellerStoreManage() {
       return;
     }
 
+    const sellerWalletAddress =
+      connectedWalletAddress?.trim() || profile.walletAddress?.trim() || "";
+
+    if (!isAddress(sellerWalletAddress)) {
+      setMessage("판매자 지갑을 연결한 뒤 매장 정보를 저장해주세요.");
+      return;
+    }
+
     try {
       setIsSaving(true);
       setMessage("");
 
-      await saveSellerStore(
-        {
-          sellerId: profile.uid,
-          sellerName: profile.businessName ?? form.name,
-          name: form.name.trim(),
-          address: form.address.trim(),
-          description: form.description.trim(),
-          reservationNotice: form.reservationNotice.trim(),
-          baseDeposit,
-          available: form.available,
-        },
-        store?.id
-      );
+      if (sellerWalletAddress !== profile.walletAddress) {
+        await updateUserWalletAddress(profile.uid, sellerWalletAddress);
+        setProfile((prev) =>
+          prev ? { ...prev, walletAddress: sellerWalletAddress } : prev
+        );
+      }
+
+      const storeData = {
+        sellerId: profile.uid,
+        sellerName: profile.businessName ?? form.name,
+        name: form.name.trim(),
+        address: form.address.trim(),
+        description: form.description.trim(),
+        reservationNotice: form.reservationNotice.trim(),
+        sellerWalletAddress,
+        baseDeposit,
+        available: form.available,
+        allowPartySize: store?.allowPartySize,
+        minPartySize: store?.minPartySize,
+        maxPartySize: store?.maxPartySize,
+      };
+
+      if (isDemoMaster && selectedStoreId) {
+        await saveDemoStore(selectedStoreId, storeData);
+      } else {
+        await saveSellerStore(storeData, store?.id);
+      }
 
       setMessage("매장 정보가 저장되었습니다.");
     } catch (error) {
@@ -241,6 +316,50 @@ export function SellerStoreManage() {
           고객에게 보이는 매장 설명, 주소, 예약 안내사항을 관리합니다.
         </p>
       </div>
+
+      {isDemoMaster && (
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: "#E8F5E9" }}
+            >
+              <Store size={22} style={{ color: "#566F2F" }} />
+            </div>
+
+            <div>
+              <h2 className="font-bold">데모 매장 선택</h2>
+              <p className="text-sm text-gray-500">
+                기본 가게 3개 중 수정할 매장을 선택하세요
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            {managedStores.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleSelectStore(item.id)}
+                className="w-full px-4 py-3 rounded-xl border text-left"
+                style={{
+                  borderColor:
+                    selectedStoreId === item.id ? "#566F2F" : "#E5E7EB",
+                  backgroundColor:
+                    selectedStoreId === item.id ? "#F4F7EF" : "#FFFFFF",
+                }}
+              >
+                <span className="block text-sm font-semibold">
+                  {item.name}
+                </span>
+                <span className="block text-xs text-gray-500 mt-1">
+                  {item.id}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-5">
         <div className="flex items-center gap-3 mb-5">
@@ -374,6 +493,49 @@ export function SellerStoreManage() {
               {form.available ? "ON" : "OFF"}
             </span>
           </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-11 h-11 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#F2F7EC" }}
+          >
+            <Wallet size={22} style={{ color: "#566F2F" }} />
+          </div>
+
+          <div>
+            <h2 className="font-bold">판매자 지갑</h2>
+            <p className="text-sm text-gray-500">
+              예약 보증금을 받을 지갑을 연결하고 저장하세요
+            </p>
+          </div>
+        </div>
+
+        <WalletConnectButton
+          className="w-full px-4 py-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-semibold"
+          style={{
+            borderColor: connectedWalletAddress ? "#566F2F" : "#D1D5DB",
+            backgroundColor: connectedWalletAddress ? "#F4F7EF" : "#FFFFFF",
+            color: connectedWalletAddress ? "#566F2F" : "#374151",
+          }}
+          iconSize={18}
+        />
+
+        <div className="mt-3 space-y-1 text-xs text-gray-500">
+          <p>
+            현재 연결된 지갑:{" "}
+            {connectedWalletAddress
+              ? `${connectedWalletAddress.slice(0, 6)}...${connectedWalletAddress.slice(-4)}`
+              : "없음"}
+          </p>
+          <p>
+            선택한 매장에 저장된 지갑:{" "}
+            {store?.sellerWalletAddress
+              ? `${store.sellerWalletAddress.slice(0, 6)}...${store.sellerWalletAddress.slice(-4)}`
+              : "없음"}
+          </p>
         </div>
       </div>
 

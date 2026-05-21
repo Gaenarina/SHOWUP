@@ -3,7 +3,7 @@
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import type { AppUser, UserRole } from "../types/user";
 
@@ -77,4 +77,14 @@ export const getUserProfile = async (uid: string) => {
   }
 
   return snapshot.data() as AppUser;
+};
+
+export const updateUserWalletAddress = async (
+  uid: string,
+  walletAddress: string
+) => {
+  await updateDoc(doc(db, "users", uid), {
+    walletAddress,
+    updatedAt: serverTimestamp(),
+  });
 };

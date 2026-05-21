@@ -1,10 +1,7 @@
 ﻿import { useEffect, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "./routerCompat";
 import { Search, MapPin } from "lucide-react";
-import {
-  seedDefaultStores,
-  subscribeStores,
-} from "../../services/storeService";
+import { subscribeStores } from "../../services/storeService";
 import type { Store } from "../../types/store";
 
 export function Home() {
@@ -20,10 +17,6 @@ export function Home() {
 
   useEffect(() => {
     setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
-
-    seedDefaultStores().catch((error) => {
-      console.error("기본 매장 생성 실패:", error);
-    });
 
     const unsubscribe = subscribeStores((items) => {
       setStores(items);

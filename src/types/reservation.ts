@@ -38,4 +38,7 @@ export type Reservation = {
 
   contractAddress?: string;
   txHash?: string;
+  chainAppointmentId?: string;
+  consumerWalletAddress?: string;
+  sellerWalletAddress?: string;
 };

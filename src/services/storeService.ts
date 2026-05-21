@@ -23,11 +23,15 @@ export type SellerStoreInput = {
   available: boolean;
 };
 
+const DEMO_MASTER_UID = process.env.NEXT_PUBLIC_DEMO_MASTER_UID ?? "";
+const DEMO_MASTER_NAME =
+  process.env.NEXT_PUBLIC_DEMO_MASTER_NAME ?? "SHOWUP 데모 관리자";
+
 const defaultStores = [
   {
     id: "default-cafe-on",
-    sellerId: "default_seller",
-    sellerName: "기본 입점 업체",
+    sellerId: DEMO_MASTER_UID,
+    sellerName: DEMO_MASTER_NAME,
     name: "카페 온",
     address: "안성시 중앙로 123",
     description: "조용한 분위기의 카페입니다.",
@@ -39,11 +43,11 @@ const defaultStores = [
   },
   {
     id: "default-study-cafe",
-    sellerId: "default_seller",
-    sellerName: "기본 입점 업체",
+    sellerId: DEMO_MASTER_UID,
+    sellerName: DEMO_MASTER_NAME,
     name: "스터디 카페 집중",
     address: "안성시 대학로 456",
-    description: "집중하기 좋은 스터디 공간입니다.",
+    description: "공부와 팀플에 적합한 스터디 공간입니다.",
     reservationNotice:
       "예약한 시간에 맞춰 입장해주세요. 조용한 이용 시간을 지켜주세요.",
     baseDeposit: 0.015,
@@ -52,11 +56,11 @@ const defaultStores = [
   },
   {
     id: "default-restaurant",
-    sellerId: "default_seller",
-    sellerName: "기본 입점 업체",
-    name: "오늘의 미식가",
+    sellerId: DEMO_MASTER_UID,
+    sellerName: DEMO_MASTER_NAME,
+    name: "레스토랑 미식가",
     address: "천안시 번화가 789",
-    description: "예약제로 운영되는 식당입니다.",
+    description: "예약제로 운영되는 레스토랑입니다.",
     reservationNotice:
       "예약 인원에 맞춰 방문해주세요. 무단 불참 시 노쇼로 처리될 수 있습니다.",
     baseDeposit: 0.02,
@@ -66,6 +70,11 @@ const defaultStores = [
 ];
 
 export const seedDefaultStores = async () => {
+  if (!DEMO_MASTER_UID) {
+    console.warn("NEXT_PUBLIC_DEMO_MASTER_UID가 설정되지 않았습니다.");
+    return;
+  }
+
   await Promise.all(
     defaultStores.map((store) =>
       setDoc(
@@ -73,6 +82,7 @@ export const seedDefaultStores = async () => {
         {
           ...store,
           createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         },
         { merge: true }
       )
@@ -113,17 +123,14 @@ export const subscribeSellerStore = (
   const q = query(collection(db, "stores"), where("sellerId", "==", sellerId));
 
   return onSnapshot(q, (snapshot) => {
-    if (snapshot.empty) {
-      callback(null);
-      return;
-    }
-
-    const item = snapshot.docs[0];
-
-    callback({
+    const stores = snapshot.docs.map((item) => ({
       id: item.id,
       ...item.data(),
-    } as Store);
+    })) as Store[];
+
+    const sellerStore = stores.find((store) => store.storeType === "seller");
+
+    callback(sellerStore ?? null);
   });
 };
 

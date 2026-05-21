@@ -51,21 +51,6 @@ export const registerUser = async ({
     createdAt: serverTimestamp(),
   });
 
-  if (role === "seller" && businessName) {
-    await setDoc(doc(db, "stores", `seller_${user.uid}`), {
-      sellerId: user.uid,
-      sellerName: name,
-      name: businessName,
-      address: "주소를 입력해주세요",
-      description: "예약 가능한 매장 설명을 입력해주세요.",
-      baseDeposit: 0.01,
-      available: true,
-      storeType: "seller",
-      businessNumber,
-      createdAt: serverTimestamp(),
-    });
-  }
-
   return user.uid;
 };
 

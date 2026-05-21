@@ -1,4 +1,4 @@
-﻿import {
+import {
   collection,
   doc,
   getDoc,
@@ -21,6 +21,9 @@ export type SellerStoreInput = {
   reservationNotice: string;
   baseDeposit: number;
   available: boolean;
+  allowPartySize?: boolean;
+  minPartySize?: number;
+  maxPartySize?: number;
 };
 
 const DEMO_MASTER_UID = process.env.NEXT_PUBLIC_DEMO_MASTER_UID ?? "";
@@ -40,6 +43,9 @@ const defaultStores = [
     baseDeposit: 0.01,
     available: true,
     storeType: "default" as const,
+    allowPartySize: false,
+    minPartySize: 1,
+    maxPartySize: 1,
   },
   {
     id: "default-study-cafe",
@@ -47,25 +53,31 @@ const defaultStores = [
     sellerName: DEMO_MASTER_NAME,
     name: "스터디 카페 집중",
     address: "안성시 대학로 456",
-    description: "공부와 팀플에 적합한 스터디 공간입니다.",
+    description: "집중하기 좋은 스터디 공간입니다.",
     reservationNotice:
       "예약한 시간에 맞춰 입장해주세요. 조용한 이용 시간을 지켜주세요.",
     baseDeposit: 0.015,
     available: true,
     storeType: "default" as const,
+    allowPartySize: false,
+    minPartySize: 1,
+    maxPartySize: 1,
   },
   {
     id: "default-restaurant",
     sellerId: DEMO_MASTER_UID,
     sellerName: DEMO_MASTER_NAME,
-    name: "레스토랑 미식가",
+    name: "오늘의 미식가",
     address: "천안시 번화가 789",
-    description: "예약제로 운영되는 레스토랑입니다.",
+    description: "예약제로 운영되는 식당입니다.",
     reservationNotice:
       "예약 인원에 맞춰 방문해주세요. 무단 불참 시 노쇼로 처리될 수 있습니다.",
     baseDeposit: 0.02,
     available: true,
     storeType: "default" as const,
+    allowPartySize: true,
+    minPartySize: 1,
+    maxPartySize: 6,
   },
 ];
 
@@ -148,6 +160,9 @@ export const saveSellerStore = async (
       ...storeData,
       baseDeposit: Number(storeData.baseDeposit),
       available: Boolean(storeData.available),
+      allowPartySize: Boolean(storeData.allowPartySize),
+      minPartySize: Number(storeData.minPartySize ?? 1),
+      maxPartySize: Number(storeData.maxPartySize ?? 1),
       storeType: "seller",
       updatedAt: serverTimestamp(),
       ...(snapshot.exists() ? {} : { createdAt: serverTimestamp() }),

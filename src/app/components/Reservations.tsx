@@ -1,8 +1,8 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Calendar, Clock, MapPin, CheckCircle, XCircle, CalendarCheck, } from "lucide-react";
+import { Calendar, Clock, MapPin, CheckCircle, XCircle, CalendarCheck, Users } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
 import {
@@ -247,6 +247,11 @@ export function Reservations() {
                       <Clock size={16} className="mr-2" />
                       {reservation.time}
                     </div>
+
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <Users size={16} className="mr-2" />
+                      예약 인원 {reservation.partySize ?? 1}명
+                    </div>
                   </div>
 
                   <div className="flex justify-between items-center pt-3 border-t">
@@ -357,6 +362,11 @@ export function Reservations() {
                   <div className="flex items-center text-gray-600 text-sm">
                     <Clock size={16} className="mr-2" />
                     {reservation.time}
+                  </div>
+
+                  <div className="flex items-center text-gray-600 text-sm">
+                    <Users size={16} className="mr-2" />
+                    예약 인원 {reservation.partySize ?? 1}명
                   </div>
                 </div>
 

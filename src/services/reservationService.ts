@@ -1,4 +1,4 @@
-﻿import {
+import {
   addDoc,
   collection,
   deleteDoc,
@@ -16,6 +16,12 @@ import type { Reservation } from "../types/reservation";
 import type { AppUser } from "../types/user";
 
 const VERIFICATION_LIMIT_MS = 3 * 60 * 1000;
+
+export const DEMO_STORE_IDS = [
+  "default-cafe-on",
+  "default-study-cafe",
+  "default-restaurant",
+];
 
 const convertDate = (value: any) => {
   if (!value) return null;
@@ -47,6 +53,7 @@ export const createReservation = async ({
   date,
   time,
   deposit,
+  partySize = 1,
 }: {
   sellerId: string;
   storeId: string;
@@ -55,6 +62,7 @@ export const createReservation = async ({
   date: Date;
   time: string;
   deposit: number;
+  partySize?: number;
 }) => {
   const currentUser = auth.currentUser;
 
@@ -84,6 +92,7 @@ export const createReservation = async ({
     date,
     time,
     deposit,
+    partySize: Number(partySize) || 1,
 
     status: "pending",
 
@@ -152,6 +161,31 @@ export const subscribeSellerReservations = (
     const reservations = snapshot.docs.map((item) =>
       mapReservation(item.id, item.data())
     );
+
+    callback(reservations);
+  });
+};
+
+export const subscribeDemoAdminReservations = (
+  callback: (reservations: Reservation[]) => void
+) => {
+  const q = query(
+    collection(db, "reservations"),
+    where("storeId", "in", DEMO_STORE_IDS)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const reservations = snapshot.docs
+      .map((item) => mapReservation(item.id, item.data()))
+      .sort((a, b) => {
+        const dateDiff = a.date.getTime() - b.date.getTime();
+
+        if (dateDiff !== 0) {
+          return dateDiff;
+        }
+
+        return a.time.localeCompare(b.time);
+      });
 
     callback(reservations);
   });

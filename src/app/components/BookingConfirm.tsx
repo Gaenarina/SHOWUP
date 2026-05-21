@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -19,6 +19,7 @@ export function BookingConfirm() {
     baseDeposit = 0.01,
     date,
     time,
+    partySize = 1,
   } = location.state || {};
 
   const [walletConnected, setWalletConnected] = useState(false);
@@ -70,6 +71,7 @@ export function BookingConfirm() {
         date: new Date(date),
         time,
         deposit: totalDeposit,
+        partySize: Number(partySize) || 1,
       });
 
       navigate("/booking/complete", {
@@ -81,6 +83,7 @@ export function BookingConfirm() {
           address,
           date,
           time,
+          partySize: Number(partySize) || 1,
           deposit: totalDeposit,
         },
       });
@@ -125,6 +128,11 @@ export function BookingConfirm() {
           <div className="flex justify-between">
             <span className="text-gray-600">시간</span>
             <span className="font-medium">{time}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-gray-600">예약 인원</span>
+            <span className="font-medium">{Number(partySize) || 1}명</span>
           </div>
         </div>
       </div>

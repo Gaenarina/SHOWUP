@@ -11,6 +11,9 @@ export type Store = {
   baseDeposit: number;
   available: boolean;
   storeType: StoreType;
+  allowPartySize?: boolean;
+  minPartySize?: number;
+  maxPartySize?: number;
   createdAt?: unknown;
   updatedAt?: unknown;
 };

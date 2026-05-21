@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useNavigate, useSearchParams } from "./routerCompat";
@@ -6,6 +6,7 @@ import {
   Calendar,
   Clock,
   User,
+  Users,
   DollarSign,
   CheckCircle,
   XCircle,
@@ -21,6 +22,7 @@ import {
   subscribeSellerReservations,
 } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
+import { DemoAdminReservations } from "./DemoAdminReservations";
 
 export function SellerReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -29,10 +31,12 @@ export function SellerReservations() {
     useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedReservationId = searchParams.get("reservationId");
+  const demoMasterUid = process.env.NEXT_PUBLIC_DEMO_MASTER_UID ?? "";
 
   useEffect(() => {
     let unsubscribeReservations: (() => void) | undefined;
@@ -44,12 +48,20 @@ export function SellerReservations() {
 
       if (!user) {
         setIsLoggedIn(false);
+        setCurrentUserId(null);
         setReservations([]);
         setIsLoading(false);
         return;
       }
 
       setIsLoggedIn(true);
+      setCurrentUserId(user.uid);
+
+      if (demoMasterUid && user.uid === demoMasterUid) {
+        setReservations([]);
+        setIsLoading(false);
+        return;
+      }
 
       unsubscribeReservations = subscribeSellerReservations(
         user.uid,
@@ -67,7 +79,7 @@ export function SellerReservations() {
         unsubscribeReservations();
       }
     };
-  }, []);
+  }, [demoMasterUid]);
 
   useEffect(() => {
     if (!selectedReservationId) return;
@@ -192,6 +204,10 @@ export function SellerReservations() {
     );
   }
 
+  if (demoMasterUid && currentUserId === demoMasterUid) {
+    return <DemoAdminReservations />;
+  }
+
   return (
     <div className="min-h-screen p-4 pb-20">
       <div className="mb-6">
@@ -284,6 +300,11 @@ export function SellerReservations() {
                     <div className="flex items-center text-gray-600 text-sm">
                       <Clock size={16} className="mr-2" />
                       {reservation.time}
+                    </div>
+
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <Users size={16} className="mr-2" />
+                      예약 인원 {reservation.partySize ?? 1}명
                     </div>
 
                     <div className="flex items-center text-gray-600 text-sm">
@@ -447,6 +468,11 @@ export function SellerReservations() {
                         { locale: ko }
                       )}{" "}
                       {reservation.time}
+                    </div>
+
+                    <div className="flex items-center">
+                      <Users size={16} className="mr-2" />
+                      예약 인원 {reservation.partySize ?? 1}명
                     </div>
 
                     <div className="flex items-center">

@@ -19,6 +19,7 @@ export type Reservation = {
   date: Date;
   time: string;
   deposit: number;
+  partySize?: number;
 
   status: ReservationStatus;
 

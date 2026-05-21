@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "./routerCompat";
 import { DayPicker } from "react-day-picker";
 import { ko } from "date-fns/locale";
@@ -31,6 +31,7 @@ export function Booking() {
   const [selectedTime, setSelectedTime] = useState<string | undefined>(
     undefined
   );
+  const [partySizeInput, setPartySizeInput] = useState("1");
 
   useEffect(() => {
     const loadStore = async () => {
@@ -47,21 +48,14 @@ export function Booking() {
     loadStore();
   }, [storeId]);
 
-  const handleConfirm = () => {
-    if (!store || !selectedDate || !selectedTime) return;
+  useEffect(() => {
+    if (!store?.allowPartySize) {
+      setPartySizeInput("1");
+      return;
+    }
 
-    navigate("/booking/confirm", {
-      state: {
-        storeId: store.id,
-        sellerId: store.sellerId,
-        storeName: store.name,
-        address: store.address,
-        baseDeposit: store.baseDeposit,
-        date: selectedDate,
-        time: selectedTime,
-      },
-    });
-  };
+    setPartySizeInput("1");
+  }, [store]);
 
   if (isLoading) {
     return (
@@ -91,6 +85,53 @@ export function Booking() {
 
   const hasReservationNotice =
     store.reservationNotice && store.reservationNotice.trim() !== "";
+  const partySize = Number(partySizeInput);
+  const isPartySizeValid =
+    !store.allowPartySize ||
+    (partySizeInput.trim() !== "" &&
+      Number.isInteger(partySize) &&
+      partySize >= 1);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedTime(undefined);
+  };
+
+  const handlePartySizeChange = (value: string) => {
+    if (/^\d*$/.test(value)) {
+      setPartySizeInput(value);
+    }
+  };
+
+  const handlePartySizeBlur = () => {
+    const nextPartySize = Number(partySizeInput);
+
+    if (!partySizeInput || !Number.isInteger(nextPartySize) || nextPartySize < 1) {
+      setPartySizeInput("1");
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!store || !selectedDate || !selectedTime) return;
+
+    if (!isPartySizeValid) {
+      alert("예약 인원은 1명 이상으로 입력해주세요.");
+      return;
+    }
+
+    navigate("/booking/confirm", {
+      state: {
+        storeId: store.id,
+        sellerId: store.sellerId,
+        storeName: store.name,
+        address: store.address,
+        baseDeposit: store.baseDeposit,
+        date: selectedDate,
+        time: selectedTime,
+        partySize: store.allowPartySize ? partySize : 1,
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen p-4 pb-20">
@@ -127,7 +168,7 @@ export function Booking() {
           <DayPicker
             mode="single"
             selected={selectedDate}
-            onSelect={setSelectedDate}
+            onSelect={handleDateSelect}
             locale={ko}
             disabled={{ before: new Date() }}
             modifiersStyles={{
@@ -147,6 +188,35 @@ export function Booking() {
           <p className="text-lg font-semibold" style={{ color: "#566F2F" }}>
             {format(selectedDate, "yyyy년 M월 d일(E)", { locale: ko })}
           </p>
+        </div>
+      )}
+
+      {selectedDate && store.allowPartySize && (
+        <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
+          <h3 className="font-semibold mb-3">예약 인원</h3>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              value={partySizeInput}
+              onChange={(event) => handlePartySizeChange(event.target.value)}
+              onBlur={handlePartySizeBlur}
+              inputMode="numeric"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg font-semibold outline-none focus:border-[#566F2F]"
+              placeholder="예: 4"
+            />
+            <span className="text-lg font-semibold" style={{ color: "#566F2F" }}>
+              명
+            </span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            인원 제한 없이 입력할 수 있습니다. 판매자가 인원 수용이 어렵다고 판단하면 예약을 취소할 수 있습니다.
+          </p>
+          {!isPartySizeValid && (
+            <p className="text-sm text-red-500 mt-2">
+              예약 인원은 1명 이상으로 입력해주세요.
+            </p>
+          )}
         </div>
       )}
 
@@ -198,17 +268,32 @@ export function Booking() {
           <p className="text-lg font-semibold" style={{ color: "#566F2F" }}>
             {selectedTime}
           </p>
+
+          {store.allowPartySize && (
+            <>
+              <p className="text-sm text-gray-600 mt-3">예약 인원</p>
+              <p className="text-lg font-semibold" style={{ color: "#566F2F" }}>
+                {isPartySizeValid ? partySize : "-"}명
+              </p>
+            </>
+          )}
         </div>
       )}
 
       <button
         type="button"
         onClick={handleConfirm}
-        disabled={!selectedDate || !selectedTime}
+        disabled={!selectedDate || !selectedTime || !isPartySizeValid}
         className="w-full py-4 rounded-lg text-white font-semibold text-lg shadow-md transition-all"
         style={{
-          backgroundColor: selectedDate && selectedTime ? "#566F2F" : "#D1D5DB",
-          cursor: selectedDate && selectedTime ? "pointer" : "not-allowed",
+          backgroundColor:
+            selectedDate && selectedTime && isPartySizeValid
+              ? "#566F2F"
+              : "#D1D5DB",
+          cursor:
+            selectedDate && selectedTime && isPartySizeValid
+              ? "pointer"
+              : "not-allowed",
         }}
       >
         다음 단계로

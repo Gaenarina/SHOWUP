@@ -13,7 +13,6 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { WalletConnectButton } from "./WalletConnectButton";
-import LoadingOverlay from "./LoadingOverlay";
 
 export function Signup() {
   const [role, setRole] = useState<"consumer" | "seller">("consumer");
@@ -32,7 +31,6 @@ export function Signup() {
   const [businessNumber, setBusinessNumber] = useState("");
 
   const [errorMessage, setErrorMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
   const { address: walletAddress, isConnected } = useAccount();
@@ -63,7 +61,6 @@ export function Signup() {
     }
 
     try {
-        setIsSubmitting(true);
         setErrorMessage("");
 
         await registerUser({
@@ -82,15 +79,11 @@ export function Signup() {
     } catch (error) {
         console.error(error);
         setErrorMessage("회원가입 중 오류가 발생했습니다.");
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-8 bg-[#fffdf8]">
-      <LoadingOverlay isOpen={isSubmitting} message="회원가입을 처리하는 중입니다." />
-
       <div className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-[#E6EAD9] p-7">
         <div className="mb-7">
           <span
@@ -310,11 +303,10 @@ export function Signup() {
         <button
           type="button"
           onClick={handleSignup}
-          disabled={isSubmitting}
-          className="w-full py-3 rounded-xl text-white font-semibold disabled:opacity-60"
+          className="w-full py-3 rounded-xl text-white font-semibold"
           style={{ backgroundColor: "#566F2F" }}
         >
-          {isSubmitting ? "가입 중..." : "회원가입"}
+          회원가입
         </button>
 
         <div className="flex justify-between items-center mt-5 text-sm">

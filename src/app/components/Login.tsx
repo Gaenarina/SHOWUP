@@ -3,7 +3,6 @@ import { Link, useNavigate } from "./routerCompat";
 import { User, Store, Mail, Lock } from "lucide-react";
 import { getUserProfile, loginUser, logoutUser } from "../../services/authService";
 import type { UserRole } from "../../types/user";
-import LoadingOverlay from "./LoadingOverlay";
 
 export function Login() {
   const [role, setRole] = useState<UserRole>("consumer");
@@ -66,8 +65,6 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-5 bg-[#fffdf8]">
-      <LoadingOverlay isOpen={isLoading} message="로그인 중입니다." />
-
       <div className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-[#E6EAD9] p-7">
         <div className="mb-8">
           <span

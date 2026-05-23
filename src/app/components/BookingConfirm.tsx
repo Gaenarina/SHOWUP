@@ -14,7 +14,6 @@ import {
   noShowDepositAbi,
 } from "../../services/web3/contracts";
 import { WalletConnectButton } from "./WalletConnectButton";
-import LoadingOverlay from "./LoadingOverlay";
 
 function normalizeTimeValue(value: string) {
   const trimmed = String(value || "").trim();
@@ -225,11 +224,6 @@ export function BookingConfirm() {
 
   return (
     <div className="min-h-screen p-4 pb-20">
-      <LoadingOverlay
-        isOpen={isSubmitting}
-        message="보증금을 예치하고 예약을 확정하는 중입니다."
-      />
-
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-1" style={{ color: "#566F2F" }}>
           보증금 확인

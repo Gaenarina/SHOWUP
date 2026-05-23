@@ -27,6 +27,7 @@ import {
 import type { AppUser } from "../../types/user";
 import type { Store as StoreType } from "../../types/store";
 import { WalletConnectButton } from "./WalletConnectButton";
+import LoadingOverlay from "./LoadingOverlay";
 
 type StoreForm = {
   name: string;
@@ -295,6 +296,8 @@ export function SellerStoreManage() {
 
   return (
     <div className="min-h-screen p-4 pb-24">
+      <LoadingOverlay isOpen={isSaving} message="매장 정보를 저장하는 중입니다." />
+
       <div className="mb-6">
         <button
           type="button"

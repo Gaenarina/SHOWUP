@@ -6,6 +6,7 @@ import {
   subscribeReservation,
 } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
+import LoadingOverlay from "./LoadingOverlay";
 
 export function SellerReservationAuth() {
   const { reservationId } = useParams<{ reservationId: string }>();
@@ -73,6 +74,8 @@ export function SellerReservationAuth() {
 
   return (
     <div className="min-h-screen bg-[#fffdf8] flex flex-col">
+      <LoadingOverlay isOpen={isSubmitting} message="인증 버튼을 활성화하는 중입니다." />
+
       <div className="p-4">
         <button
           type="button"

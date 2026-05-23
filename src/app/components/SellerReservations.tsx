@@ -23,6 +23,7 @@ import {
 } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
 import { DemoAdminReservations } from "./DemoAdminReservations";
+import LoadingOverlay from "./LoadingOverlay";
 
 export function SellerReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -32,6 +33,7 @@ export function SellerReservations() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState("");
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -129,6 +131,7 @@ export function SellerReservations() {
     if (!selectedReservation) return;
 
     try {
+      setActionMessage("예약을 취소하는 중입니다.");
       await cancelReservation(selectedReservation.id);
       setShowCancelModal(false);
       setSelectedReservation(null);
@@ -136,16 +139,21 @@ export function SellerReservations() {
     } catch (error) {
       console.error(error);
       alert("예약 취소 중 오류가 발생했습니다.");
+    } finally {
+      setActionMessage("");
     }
   };
 
   const markAsNoShow = async (reservationId: string) => {
     try {
+      setActionMessage("노쇼 처리를 진행하는 중입니다.");
       await markReservationAsNoShow(reservationId);
       alert("노쇼 처리되었습니다. 보증금이 입금됩니다.");
     } catch (error) {
       console.error(error);
       alert("노쇼 처리 중 오류가 발생했습니다.");
+    } finally {
+      setActionMessage("");
     }
   };
 
@@ -210,6 +218,8 @@ export function SellerReservations() {
 
   return (
     <div className="min-h-screen p-4 pb-20">
+      <LoadingOverlay isOpen={Boolean(actionMessage)} message={actionMessage} />
+
       <div className="mb-6">
         <div className="flex justify-between items-start mb-2">
           <div>
@@ -369,6 +379,7 @@ export function SellerReservations() {
                             e.stopPropagation();
                             markAsNoShow(reservation.id);
                           }}
+                          disabled={Boolean(actionMessage)}
                           className="w-full py-2 rounded-lg border-2 font-medium text-sm"
                           style={{
                             borderColor: "#DC2626",
@@ -524,6 +535,7 @@ export function SellerReservations() {
               <button
                 type="button"
                 onClick={confirmCancel}
+                disabled={Boolean(actionMessage)}
                 className="flex-1 py-3 rounded-lg text-white font-medium"
                 style={{ backgroundColor: "#DC2626" }}
               >

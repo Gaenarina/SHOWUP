@@ -10,6 +10,7 @@ import {
   subscribeConsumerReservations,
 } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
+import PageLoading from "./PageLoading";
 
 export function Reservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -132,11 +133,7 @@ export function Reservations() {
   );
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">예약 정보를 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="예약 정보를 불러오는 중입니다." />;
   }
 
   if (!isLoggedIn) {

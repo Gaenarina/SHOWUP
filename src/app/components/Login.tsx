@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { Link, useNavigate } from "./routerCompat";
+import type { FormEvent } from "react";
 import { User, Store, Mail, Lock } from "lucide-react";
 import { getUserProfile, loginUser, logoutUser } from "../../services/authService";
 import type { UserRole } from "../../types/user";
@@ -64,6 +65,14 @@ export function Login() {
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!isLoading) {
+      void handleLogin();
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-5 bg-[#fffdf8]">
       <LoadingOverlay isOpen={isLoading} message="로그인 중입니다." />
@@ -114,43 +123,44 @@ export function Login() {
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7]">
-            <Mail size={18} className="text-gray-400" />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="이메일"
-              className="w-full bg-transparent outline-none text-sm"
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7]">
+              <Mail size={18} className="text-gray-400" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="이메일"
+                className="w-full bg-transparent outline-none text-sm"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7]">
+              <Lock size={18} className="text-gray-400" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호"
+                className="w-full bg-transparent outline-none text-sm"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7]">
-            <Lock size={18} className="text-gray-400" />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="비밀번호"
-              className="w-full bg-transparent outline-none text-sm"
-            />
-          </div>
-        </div>
+          {errorMessage && (
+            <p className="text-sm text-red-500 mt-4">{errorMessage}</p>
+          )}
 
-        {errorMessage && (
-          <p className="text-sm text-red-500 mt-4">{errorMessage}</p>
-        )}
-
-        <button
-          type="button"
-          onClick={handleLogin}
-          disabled={isLoading}
-          className="w-full mt-6 py-3 rounded-xl text-white font-semibold disabled:opacity-60"
-          style={{ backgroundColor: "#566F2F" }}
-        >
-          {isLoading ? "로그인 중..." : "로그인"}
-        </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-6 py-3 rounded-xl text-white font-semibold disabled:opacity-60"
+            style={{ backgroundColor: "#566F2F" }}
+          >
+            {isLoading ? "로그인 중..." : "로그인"}
+          </button>
+        </form>
 
         <div className="flex justify-between items-center mt-5 text-sm">
           <Link to="/" className="text-gray-500">

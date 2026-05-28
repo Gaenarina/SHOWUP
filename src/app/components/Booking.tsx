@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import "react-day-picker/dist/style.css";
 import { getStoreById } from "../../services/storeService";
 import type { Store } from "../../types/store";
+import PageLoading from "./PageLoading";
 
 interface TimeSlot {
   time: string;
@@ -58,11 +59,7 @@ export function Booking() {
   }, [store]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">업체 정보를 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="업체 정보를 불러오는 중입니다." />;
   }
 
   if (!store) {

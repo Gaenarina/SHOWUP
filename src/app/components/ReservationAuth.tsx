@@ -8,6 +8,7 @@ import {
 } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
 import LoadingOverlay from "./LoadingOverlay";
+import PageLoading from "./PageLoading";
 
 export function ReservationAuth() {
   const { reservationId } = useParams<{ reservationId: string }>();
@@ -78,9 +79,7 @@ export function ReservationAuth() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <p className="text-gray-500">예약 정보를 불러오는 중입니다.</p>
-      </div>
+      <PageLoading message="예약 정보를 불러오는 중입니다." bottomPadding="none" />
     );
   }
 

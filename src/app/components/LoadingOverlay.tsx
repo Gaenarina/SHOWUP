@@ -14,7 +14,7 @@ export default function LoadingOverlay({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
       <div className="flex w-[280px] flex-col items-center rounded-2xl bg-white px-6 py-7 shadow-xl">
-        <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#fa6684]" />
+        <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-gray-500" />
 
         <p className="text-center text-base font-semibold text-gray-800">
           {message}

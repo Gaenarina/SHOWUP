@@ -3,6 +3,7 @@ import { Link, useNavigate } from "./routerCompat";
 import { Search, MapPin } from "lucide-react";
 import { subscribeStores } from "../../services/storeService";
 import type { Store } from "../../types/store";
+import PageLoading from "./PageLoading";
 
 export function Home() {
   const [region, setRegion] = useState("전체");
@@ -47,6 +48,10 @@ export function Home() {
 
     return matchesRegion && matchesSearch;
   });
+
+  if (isLoading) {
+    return <PageLoading message="업체 정보를 불러오는 중입니다." />;
+  }
 
   return (
     <div className="min-h-screen p-4 pb-20">
@@ -123,11 +128,7 @@ export function Home() {
       </div>
 
       <div className="space-y-4">
-        {isLoading ? (
-          <p className="text-center text-gray-500 py-8">
-            업체 정보를 불러오는 중입니다.
-          </p>
-        ) : filteredStores.length === 0 ? (
+        {filteredStores.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
             검색 결과가 없습니다.
           </p>

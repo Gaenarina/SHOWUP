@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Link } from "./routerCompat";
+import { Link, useNavigate } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import {
@@ -15,18 +15,21 @@ import {
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
-import { getUserProfile } from "../../services/authService";
+import { getUserProfile, logoutUser } from "../../services/authService";
 import { subscribeSellerReservations } from "../../services/reservationService";
 import { subscribeSellerStore } from "../../services/storeService";
 import type { AppUser } from "../../types/user";
 import type { Reservation } from "../../types/reservation";
 import type { Store as StoreType } from "../../types/store";
+import PageLoading from "./PageLoading";
 
 export function SellerHome() {
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [store, setStore] = useState<StoreType | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     let unsubscribeReservations: (() => void) | undefined;
@@ -174,11 +177,14 @@ export function SellerHome() {
     },
   ];
 
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate("/login");
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen p-4 pb-24 flex items-center justify-center">
-        <p className="text-gray-500">판매자 정보를 불러오는 중입니다.</p>
-      </div>
+      <PageLoading message="판매자 정보를 불러오는 중입니다." bottomPadding="seller" />
     );
   }
 
@@ -233,20 +239,35 @@ export function SellerHome() {
   return (
     <div className="min-h-screen p-4 pb-24">
       <div className="mb-6">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium" style={{ color: "#718952" }}>
-            노쇼 방지 예약 플랫폼
-          </span>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium" style={{ color: "#718952" }}>
+              노쇼 방지 예약 플랫폼
+            </span>
 
-          <h1 className="showup-logo mb-1">ShowUp</h1>
+            <h1 className="showup-logo mb-1">ShowUp</h1>
 
-          <p className="text-base font-semibold" style={{ color: "#566F2F" }}>
-            판매자 홈
-          </p>
+            <p className="text-base font-semibold" style={{ color: "#566F2F" }}>
+              판매자 홈
+            </p>
 
-          <p className="text-sm text-gray-500">
-            예약 현황, 보증금, 인증 대기, 매장 정보를 한눈에 관리하세요.
-          </p>
+            <p className="text-sm text-gray-500">
+              예약 현황, 보증금, 인증 대기, 매장 정보를 한눈에 관리하세요.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex-shrink-0 px-3 py-2 rounded-lg border text-sm font-medium whitespace-nowrap"
+            style={{
+              borderColor: "#566F2F",
+              color: "#566F2F",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            로그아웃
+          </button>
         </div>
       </div>
 

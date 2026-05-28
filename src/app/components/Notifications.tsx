@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
 import { subscribeConsumerReservations } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
+import PageLoading from "./PageLoading";
 
 type AppNotification = {
   id: string;
@@ -207,11 +208,7 @@ export function Notifications() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">알림을 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="알림을 불러오는 중입니다." />;
   }
 
   if (!uid) {

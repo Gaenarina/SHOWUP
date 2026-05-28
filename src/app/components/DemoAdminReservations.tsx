@@ -20,6 +20,7 @@ import {
 } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
 import LoadingOverlay from "./LoadingOverlay";
+import PageLoading from "./PageLoading";
 
 const DEMO_STORES = [
   { id: "all", name: "전체" },
@@ -301,11 +302,7 @@ export function DemoAdminReservations() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">데모 예약 정보를 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="데모 예약 정보를 불러오는 중입니다." />;
   }
 
   return (

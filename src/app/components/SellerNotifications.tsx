@@ -6,6 +6,7 @@ import { auth } from "../../firebase";
 import { getUserProfile } from "../../services/authService";
 import { subscribeSellerReservations } from "../../services/reservationService";
 import type { Reservation } from "../../types/reservation";
+import PageLoading from "./PageLoading";
 
 type SellerNotification = {
   id: string;
@@ -192,11 +193,7 @@ export function SellerNotifications() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">판매자 알림을 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="판매자 알림을 불러오는 중입니다." />;
   }
 
   if (!uid || !isSeller) {

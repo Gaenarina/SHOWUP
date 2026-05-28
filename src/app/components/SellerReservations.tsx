@@ -24,6 +24,7 @@ import {
 import type { Reservation } from "../../types/reservation";
 import { DemoAdminReservations } from "./DemoAdminReservations";
 import LoadingOverlay from "./LoadingOverlay";
+import PageLoading from "./PageLoading";
 
 export function SellerReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -178,11 +179,7 @@ export function SellerReservations() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">예약 정보를 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="예약 정보를 불러오는 중입니다." />;
   }
 
   if (!isLoggedIn) {

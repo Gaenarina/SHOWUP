@@ -28,6 +28,7 @@ import type { AppUser } from "../../types/user";
 import type { Store as StoreType } from "../../types/store";
 import { WalletConnectButton } from "./WalletConnectButton";
 import LoadingOverlay from "./LoadingOverlay";
+import PageLoading from "./PageLoading";
 
 type StoreForm = {
   name: string;
@@ -242,9 +243,7 @@ export function SellerStoreManage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-4 pb-24 flex items-center justify-center">
-        <p className="text-gray-500">매장 정보를 불러오는 중입니다.</p>
-      </div>
+      <PageLoading message="매장 정보를 불러오는 중입니다." bottomPadding="seller" />
     );
   }
 

@@ -15,6 +15,7 @@ import { subscribeSellerStore } from "../../services/storeService";
 import type { AppUser } from "../../types/user";
 import type { Store as StoreType } from "../../types/store";
 import { WalletStatusRow } from "./WalletStatusRow";
+import PageLoading from "./PageLoading";
 
 export function SellerMyPage() {
   const [profile, setProfile] = useState<AppUser | null>(null);
@@ -62,11 +63,7 @@ export function SellerMyPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">판매자 정보를 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="판매자 정보를 불러오는 중입니다." />;
   }
 
   if (!profile || profile.role !== "seller") {

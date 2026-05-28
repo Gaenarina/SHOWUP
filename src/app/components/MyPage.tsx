@@ -17,6 +17,7 @@ import { getUserProfile, logoutUser } from "../../services/authService";
 import { subscribeConsumerReservations } from "../../services/reservationService";
 import type { AppUser } from "../../types/user";
 import type { Reservation } from "../../types/reservation";
+import PageLoading from "./PageLoading";
 import { WalletStatusRow } from "./WalletStatusRow";
 
 export function MyPage() {
@@ -130,11 +131,7 @@ export function MyPage() {
   const badge = getReputationBadge();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen p-4 pb-20 flex items-center justify-center">
-        <p className="text-gray-500">내 정보를 불러오는 중입니다.</p>
-      </div>
-    );
+    return <PageLoading message="내 정보를 불러오는 중입니다." />;
   }
 
   if (!userData) {

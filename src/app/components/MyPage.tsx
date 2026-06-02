@@ -19,20 +19,29 @@ import type { AppUser } from "@/types/user";
 import type { Reservation } from "@/types/reservation";
 import PageLoading from "./PageLoading";
 import { WalletStatusRow } from "./WalletStatusRow";
+// 기획서 반영: 수정된 named export 구조의 모달 불러오기
+import { ReputationModal } from "./ReputationModal";
 
 export function MyPage() {
   const [userData, setUserData] = useState<AppUser | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 5번 지시사항: 기획서 가이드와 명칭 통일 (showReputation)
+  const [showReputation, setShowReputation] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     let unsubscribeReservations: (() => void) | undefined;
+    let unsubscribeUser: (() => void) | undefined; 
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (unsubscribeReservations) {
         unsubscribeReservations();
+      }
+      if (unsubscribeUser) {
+        unsubscribeUser();
       }
 
       if (!user) {
@@ -42,10 +51,17 @@ export function MyPage() {
         return;
       }
 
-      const profile = await getUserProfile(user.uid);
+      {/* 6번 지시사항: 즉시 반영용 실시간 리스너 완벽 유지 */}
+      const userRef = doc(db, "users", user.uid);
+      unsubscribeUser = onSnapshot(userRef, (snap) => {
+        if (!snap.exists()) {
+          setUserData(null);
+          return;
+        }
 
-      setUserData(profile);
-      setIsLoading(false);
+        setUserData(snap.data() as AppUser);
+        setIsLoading(false);
+      });
 
       unsubscribeReservations = subscribeConsumerReservations(
         user.uid,
@@ -58,6 +74,10 @@ export function MyPage() {
 
       if (unsubscribeReservations) {
         unsubscribeReservations();
+      }
+
+      if (unsubscribeUser) {
+        unsubscribeUser();
       }
     };
   }, []);
@@ -100,34 +120,52 @@ export function MyPage() {
       : Math.round((completedReservations / totalReservations) * 100);
 
   const currentDeposit = 0.01 + noShowCount * 0.005;
+  const reputationScore = userData?.reputationScore ?? 100;
 
   const getReputationBadge = () => {
-    if (noShowCount === 0) {
+    if (reputationScore >= 81) {
       return {
-        title: "우수 고객",
+        title: "약속왕",
         color: "#2E7D32",
         bgColor: "#E8F5E9",
         icon: <Star fill="#FFD700" color="#FFD700" size={20} />,
       };
     }
 
-    if (noShowCount <= 2) {
+    if (reputationScore >= 61) {
       return {
-        title: "주의 고객",
+        title: "우수함",
+        color: "#1976D2",
+        bgColor: "#E3F2FD",
+        icon: <TrendingUp color="#1976D2" size={20} />,
+      };
+    }
+
+    if (reputationScore >= 41) {
+      return {
+        title: "일반",
+        color: "#757575",
+        bgColor: "#F5F5F5",
+        icon: <Award color="#757575" size={20} />,
+      };
+    }
+
+    if (reputationScore >= 21) {
+      return {
+        title: "주의 필요",
         color: "#D97706",
         bgColor: "#FEF3C7",
-        icon: <TrendingUp color="#D97706" size={20} />,
+        icon: <TrendingDown color="#D97706" size={20} />,
       };
     }
 
     return {
-      title: `노쇼 주의 ${"!".repeat(Math.min(noShowCount - 2, 3))}`,
+      title: "노쇼왕",
       color: "#DC2626",
       bgColor: "#FEE2E2",
       icon: <TrendingDown color="#DC2626" size={20} />,
     };
   };
-
   const badge = getReputationBadge();
 
   if (isLoading) {
@@ -181,8 +219,10 @@ export function MyPage() {
           </div>
         </div>
 
+        {/* 5번 지시사항: 평판 카드 클릭 이벤트 및 커서 스타일 반영 */}
         <div
-          className="rounded-lg p-4 flex items-center justify-between"
+          onClick={() => setShowReputation(true)}
+          className="rounded-lg p-4 flex items-center justify-between cursor-pointer"
           style={{ backgroundColor: badge.bgColor }}
         >
           <div className="flex items-center gap-3">
@@ -192,7 +232,7 @@ export function MyPage() {
                 {badge.title}
               </p>
               <p className="text-xs" style={{ color: badge.color }}>
-                참석률 {attendanceRate}%
+                평판 점수 {reputationScore}점
               </p>
             </div>
           </div>
@@ -204,6 +244,13 @@ export function MyPage() {
         <div className="flex items-center gap-2 mb-4">
           <Award size={20} style={{ color: "#566F2F" }} />
           <h3 className="font-semibold">평판 현황</h3>
+        </div>
+
+        <div className="text-center mb-4">
+          <p className="text-2xl font-bold" style={{ color: "#566F2F" }}>
+            {reputationScore}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">평판 점수</p>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -278,6 +325,14 @@ export function MyPage() {
         <LogOut size={20} />
         <span className="font-medium">로그아웃</span>
       </button>
+
+      {/* 5번 지시사항: 모달 조건부 렌더링 세팅 완료 */}
+      {showReputation && userData && (
+        <ReputationModal
+          score={userData.reputationScore ?? 100}
+          onClose={() => setShowReputation(false)}
+        />
+      )}
     </div>
   );
 }

@@ -19,11 +19,16 @@ import type { AppUser } from "../../types/user";
 import type { Reservation } from "../../types/reservation";
 import PageLoading from "./PageLoading";
 import { WalletStatusRow } from "./WalletStatusRow";
+// 5번 지시사항: 모달 컴포넌트 임포트
+import ReputationModal from "./ReputationModal";
 
 export function MyPage() {
   const [userData, setUserData] = useState<AppUser | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 1번 지시사항: 모달 열림/닫힘 상태 state 추가
+  const [showReputationModal, setShowReputationModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -100,52 +105,52 @@ export function MyPage() {
       : Math.round((completedReservations / totalReservations) * 100);
 
   const currentDeposit = 0.01 + noShowCount * 0.005;
-const reputationScore = userData?.reputationScore ?? 100;
+  const reputationScore = userData?.reputationScore ?? 100;
 
-const getReputationBadge = () => {
-  if (reputationScore >= 81) {
+  const getReputationBadge = () => {
+    if (reputationScore >= 81) {
+      return {
+        title: "약속왕",
+        color: "#2E7D32",
+        bgColor: "#E8F5E9",
+        icon: <Star fill="#FFD700" color="#FFD700" size={20} />,
+      };
+    }
+
+    if (reputationScore >= 61) {
+      return {
+        title: "우수함",
+        color: "#1976D2",
+        bgColor: "#E3F2FD",
+        icon: <TrendingUp color="#1976D2" size={20} />,
+      };
+    }
+
+    if (reputationScore >= 41) {
+      return {
+        title: "일반",
+        color: "#757575",
+        bgColor: "#F5F5F5",
+        icon: <Award color="#757575" size={20} />,
+      };
+    }
+
+    if (reputationScore >= 21) {
+      return {
+        title: "주의 필요",
+        color: "#D97706",
+        bgColor: "#FEF3C7",
+        icon: <TrendingDown color="#D97706" size={20} />,
+      };
+    }
+
     return {
-      title: "약속왕",
-      color: "#2E7D32",
-      bgColor: "#E8F5E9",
-      icon: <Star fill="#FFD700" color="#FFD700" size={20} />,
+      title: "노쇼왕",
+      color: "#DC2626",
+      bgColor: "#FEE2E2",
+      icon: <TrendingDown color="#DC2626" size={20} />,
     };
-  }
-
-  if (reputationScore >= 61) {
-    return {
-      title: "우수함",
-      color: "#1976D2",
-      bgColor: "#E3F2FD",
-      icon: <TrendingUp color="#1976D2" size={20} />,
-    };
-  }
-
-  if (reputationScore >= 41) {
-    return {
-      title: "일반",
-      color: "#757575",
-      bgColor: "#F5F5F5",
-      icon: <Award color="#757575" size={20} />,
-    };
-  }
-
-  if (reputationScore >= 21) {
-    return {
-      title: "주의 필요",
-      color: "#D97706",
-      bgColor: "#FEF3C7",
-      icon: <TrendingDown color="#D97706" size={20} />,
-    };
-  }
-
-  return {
-    title: "노쇼왕",
-    color: "#DC2626",
-    bgColor: "#FEE2E2",
-    icon: <TrendingDown color="#DC2626" size={20} />,
   };
-};
   const badge = getReputationBadge();
 
   if (isLoading) {
@@ -199,8 +204,10 @@ const getReputationBadge = () => {
           </div>
         </div>
 
+        {/* 2번 지시사항: 클릭 핸들러 및 cursor-pointer 스타일 추가 */}
         <div
-          className="rounded-lg p-4 flex items-center justify-between"
+          onClick={() => setShowReputationModal(true)}
+          className="rounded-lg p-4 flex items-center justify-between cursor-pointer"
           style={{ backgroundColor: badge.bgColor }}
         >
           <div className="flex items-center gap-3">
@@ -210,8 +217,8 @@ const getReputationBadge = () => {
                 {badge.title}
               </p>
               <p className="text-xs" style={{ color: badge.color }}>
-  평판 점수 {reputationScore}점
-</p>
+                평판 점수 {reputationScore}점
+              </p>
             </div>
           </div>
           <ChevronRight style={{ color: badge.color }} />
@@ -224,19 +231,14 @@ const getReputationBadge = () => {
           <h3 className="font-semibold">평판 현황</h3>
         </div>
 
-        <div className="text-center">
-  <p
-    className="text-2xl font-bold"
-    style={{ color: "#566F2F" }}
-  >
-    {reputationScore}
-  </p>
-  <p className="text-xs text-gray-600 mt-1">
-    평판 점수
-  </p>
-</div>
+        <div className="text-center mb-4">
+          <p className="text-2xl font-bold" style={{ color: "#566F2F" }}>
+            {reputationScore}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">평판 점수</p>
+        </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold" style={{ color: "#566F2F" }}>
               {totalReservations}
@@ -308,6 +310,14 @@ const getReputationBadge = () => {
         <LogOut size={20} />
         <span className="font-medium">로그아웃</span>
       </button>
+
+      {/* 6번 지시사항: showReputationModal이 true일 때 모달 컴포넌트 렌더링 */}
+      {showReputationModal && (
+        <ReputationModal
+          score={userData.reputationScore ?? 100}
+          onClose={() => setShowReputationModal(false)}
+        />
+      )}
     </div>
   );
 }

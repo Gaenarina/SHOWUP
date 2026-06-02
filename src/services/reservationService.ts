@@ -15,6 +15,9 @@ import { auth, db } from "@/firebase";
 import type { Reservation } from "@/types/reservation";
 import type { AppUser } from "@/types/user";
 
+// TODO: applyNoShowPenalty 함수가 정의된 실제 파일 경로로 수정해 주세요.
+import { applyNoShowPenalty } from "./penalty"; 
+
 const VERIFICATION_LIMIT_MS = 3 * 60 * 1000;
 
 export const DEMO_STORE_IDS = [
@@ -242,6 +245,7 @@ export const verifyConsumer = async (reservationId: string) => {
     return;
   }
 
+  // 변경된 부분: 인증 시간 초과 시 applyNoShowPenalty 호출
   if (Date.now() > expiresAt.getTime()) {
     await updateDoc(reservationRef, {
       status: "noshow",
@@ -267,6 +271,7 @@ export const expireReservationIfNeeded = async (reservationId: string) => {
   const data = snapshot.data();
   const expiresAt = convertDate(data.verificationExpiresAt);
 
+  // 변경된 부분: 예약 시간이 지났을 때 applyNoShowPenalty 호출
   if (
     data.verificationEnabled === true &&
     data.consumerVerified !== true &&
@@ -274,10 +279,7 @@ export const expireReservationIfNeeded = async (reservationId: string) => {
     expiresAt &&
     Date.now() > expiresAt.getTime()
   ) {
-    await updateDoc(reservationRef, {
-      status: "noshow",
-      verificationEnabled: false,
-    });
+    await applyNoShowPenalty(reservationId);
   }
 };
 

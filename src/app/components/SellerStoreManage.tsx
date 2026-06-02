@@ -12,20 +12,20 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
+import { auth } from "@/firebase";
 import {
   getUserProfile,
   updateUserWalletAddress,
-} from "../../services/authService";
+} from "@/services/authService";
 import {
   DEMO_MASTER_UID,
   saveSellerStore,
   saveDemoStore,
   subscribeDemoStores,
   subscribeSellerStore,
-} from "../../services/storeService";
-import type { AppUser } from "../../types/user";
-import type { Store as StoreType } from "../../types/store";
+} from "@/services/storeService";
+import type { AppUser } from "@/types/user";
+import type { Store as StoreType } from "@/types/store";
 import { WalletConnectButton } from "./WalletConnectButton";
 import LoadingOverlay from "./LoadingOverlay";
 import PageLoading from "./PageLoading";

@@ -1,4 +1,4 @@
-export type ReservationStatus =
+﻿export type ReservationStatus =
   | "pending"
   | "confirmed"
   | "completed"

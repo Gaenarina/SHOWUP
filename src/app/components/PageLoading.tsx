@@ -1,4 +1,4 @@
-type PageLoadingProps = {
+﻿type PageLoadingProps = {
   message?: string;
   bottomPadding?: "default" | "seller" | "none";
 };
@@ -10,7 +10,7 @@ const paddingByType = {
 };
 
 export default function PageLoading({
-  message = "로딩 중입니다.",
+  message = "濡쒕뵫 以묒엯?덈떎.",
   bottomPadding = "default",
 }: PageLoadingProps) {
   return (

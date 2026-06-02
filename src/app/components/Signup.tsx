@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { useAccount } from "wagmi";
 import { Link, useNavigate } from "./routerCompat";
-import { registerUser } from "../../services/authService";
+import { registerUser } from "@/services/authService";
 import {
   User,
   Store,

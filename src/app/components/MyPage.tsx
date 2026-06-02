@@ -12,11 +12,11 @@ import {
   Store,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
-import { getUserProfile, logoutUser } from "../../services/authService";
-import { subscribeConsumerReservations } from "../../services/reservationService";
-import type { AppUser } from "../../types/user";
-import type { Reservation } from "../../types/reservation";
+import { auth } from "@/firebase";
+import { getUserProfile, logoutUser } from "@/services/authService";
+import { subscribeConsumerReservations } from "@/services/reservationService";
+import type { AppUser } from "@/types/user";
+import type { Reservation } from "@/types/reservation";
 import PageLoading from "./PageLoading";
 import { WalletStatusRow } from "./WalletStatusRow";
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { SellerMyPage } from "../../../components/SellerMyPage";
 

@@ -1,4 +1,4 @@
-export type StoreType = "default" | "seller";
+﻿export type StoreType = "default" | "seller";
 
 export type Store = {
   id: string;

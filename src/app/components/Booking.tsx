@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "./routerCompat";
 import { DayPicker } from "react-day-picker";
 import { ko } from "date-fns/locale";
 import { format } from "date-fns";
 import "react-day-picker/dist/style.css";
-import { getStoreById } from "../../services/storeService";
-import type { Store } from "../../types/store";
+import { getStoreById } from "@/services/storeService";
+import type { Store } from "@/types/store";
 import PageLoading from "./PageLoading";
 
 interface TimeSlot {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useNavigate, useSearchParams } from "./routerCompat";
@@ -15,13 +15,13 @@ import {
   Store,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
+import { auth } from "@/firebase";
 import {
   cancelReservation,
   markReservationAsNoShow,
   subscribeSellerReservations,
-} from "../../services/reservationService";
-import type { Reservation } from "../../types/reservation";
+} from "@/services/reservationService";
+import type { Reservation } from "@/types/reservation";
 import { DemoAdminReservations } from "./DemoAdminReservations";
 import LoadingOverlay from "./LoadingOverlay";
 import PageLoading from "./PageLoading";
@@ -136,7 +136,7 @@ export function SellerReservations() {
       await cancelReservation(selectedReservation.id);
       setShowCancelModal(false);
       setSelectedReservation(null);
-      alert("예약이 취소되었습니다. 고객에게 보증금이 환불됩니다.");
+      alert("예약이 취소되었습니다. 고객에게 보증금이 환불되며 판매자 평판에 영향을 줄 수 있습니다.");
     } catch (error) {
       console.error(error);
       alert("예약 취소 중 오류가 발생했습니다.");
@@ -512,12 +512,23 @@ export function SellerReservations() {
           <div className="bg-white rounded-lg p-6 max-w-sm w-full">
             <h3 className="text-xl font-bold mb-4">예약 취소</h3>
 
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               {selectedReservation.consumerName}님의 예약을 취소하시겠습니까?
               <br />
               <br />
               고객에게 보증금이 환불되며 알림이 전송됩니다.
             </p>
+
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-6">
+              <p className="font-semibold text-red-700 mb-1">
+                판매자 예약 취소 안내
+              </p>
+              <div className="text-sm text-red-700 leading-relaxed space-y-0.5">
+                <p>예약을 취소하면 판매자 평판이 하락할 수 있습니다.</p>
+                <p>평판이 낮아지면 가게 노출이 제한될 수 있으니</p>
+                <p>신중하게 진행해주세요.</p>
+              </div>
+            </div>
 
             <div className="flex gap-3">
               <button

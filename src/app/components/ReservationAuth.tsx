@@ -1,12 +1,17 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "./routerCompat";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
+import { usePublicClient, useWriteContract } from "wagmi";
 import {
   expireReservationIfNeeded,
   subscribeReservation,
   verifyConsumer,
-} from "../../services/reservationService";
-import type { Reservation } from "../../types/reservation";
+} from "@/services/reservationService";
+import type { Reservation } from "@/types/reservation";
+import {
+  NO_SHOW_DEPOSIT_ADDRESS,
+  noShowDepositAbi,
+} from "@/services/web3/contracts";
 import LoadingOverlay from "./LoadingOverlay";
 import PageLoading from "./PageLoading";
 
@@ -18,6 +23,9 @@ export function ReservationAuth() {
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
 
   useEffect(() => {
     if (!reservationId) return;
@@ -115,7 +123,10 @@ export function ReservationAuth() {
 
   return (
     <div className="min-h-screen bg-[#fffdf8] flex flex-col">
-      <LoadingOverlay isOpen={isSubmitting} message="참석 인증을 처리하는 중입니다." />
+      <LoadingOverlay
+        isOpen={isSubmitting}
+        message={actionMessage || "참석 인증을 처리하는 중입니다."}
+      />
 
       <div className="p-4">
         <button

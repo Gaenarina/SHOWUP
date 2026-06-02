@@ -9,11 +9,11 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
-import { getUserProfile, logoutUser } from "../../services/authService";
-import { subscribeSellerStore } from "../../services/storeService";
-import type { AppUser } from "../../types/user";
-import type { Store as StoreType } from "../../types/store";
+import { auth } from "@/firebase";
+import { getUserProfile, logoutUser } from "@/services/authService";
+import { subscribeSellerStore } from "@/services/storeService";
+import type { AppUser } from "@/types/user";
+import type { Store as StoreType } from "@/types/store";
 import { WalletStatusRow } from "./WalletStatusRow";
 import PageLoading from "./PageLoading";
 

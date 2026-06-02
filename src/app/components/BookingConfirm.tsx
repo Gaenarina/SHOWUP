@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "./routerCompat";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Wallet, AlertCircle } from "lucide-react";
 import { isAddress, parseEther } from "viem";
 import { useAccount, useWriteContract } from "wagmi";
-import { auth } from "../../firebase";
-import { getUserProfile } from "../../services/authService";
-import { createReservation } from "../../services/reservationService";
-import { getStoreById } from "../../services/storeService";
+import { auth } from "@/firebase";
+import { getUserProfile } from "@/services/authService";
+import { createReservation } from "@/services/reservationService";
+import { getStoreById } from "@/services/storeService";
 import {
   NO_SHOW_DEPOSIT_ADDRESS,
   noShowDepositAbi,
-} from "../../services/web3/contracts";
+} from "@/services/web3/contracts";
 import { WalletConnectButton } from "./WalletConnectButton";
 import LoadingOverlay from "./LoadingOverlay";
 
@@ -127,6 +127,9 @@ export function BookingConfirm() {
     `${reservationDateText}T${normalizedTime}:00`
   );
   const reservationTime = Math.floor(reservationDateTime.getTime() / 1000);
+  const reservationDateStartTime = Math.floor(
+    new Date(`${reservationDateText}T00:00:00`).getTime() / 1000
+  );
 
   const handleConfirmBooking = async () => {
     try {
@@ -180,6 +183,7 @@ export function BookingConfirm() {
           chainAppointmentId,
           normalizedSellerWalletAddress,
           BigInt(reservationTime),
+          BigInt(reservationDateStartTime),
         ],
         value: parseEther(totalDeposit.toFixed(18)),
         gas: BigInt(1000000),

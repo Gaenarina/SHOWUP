@@ -1,4 +1,4 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+﻿import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ChevronRight, Wallet } from "lucide-react";
 
 type WalletStatusRowProps = {
@@ -36,7 +36,7 @@ export function WalletStatusRow({ savedWalletAddress }: WalletStatusRowProps) {
           : !connected
             ? savedWalletAddress
               ? `저장된 지갑 ${shortenAddress(savedWalletAddress)}`
-              : "눌러서 지갑을 연결하세요"
+              : "새로운 지갑을 연결하세요"
             : chain.unsupported
               ? chain.name
               : `${account.displayName} · ${chain.name}`;

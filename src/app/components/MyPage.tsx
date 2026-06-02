@@ -100,34 +100,52 @@ export function MyPage() {
       : Math.round((completedReservations / totalReservations) * 100);
 
   const currentDeposit = 0.01 + noShowCount * 0.005;
+const reputationScore = userData?.reputationScore ?? 100;
 
-  const getReputationBadge = () => {
-    if (noShowCount === 0) {
-      return {
-        title: "우수 고객",
-        color: "#2E7D32",
-        bgColor: "#E8F5E9",
-        icon: <Star fill="#FFD700" color="#FFD700" size={20} />,
-      };
-    }
-
-    if (noShowCount <= 2) {
-      return {
-        title: "주의 고객",
-        color: "#D97706",
-        bgColor: "#FEF3C7",
-        icon: <TrendingUp color="#D97706" size={20} />,
-      };
-    }
-
+const getReputationBadge = () => {
+  if (reputationScore >= 81) {
     return {
-      title: `노쇼 주의 ${"!".repeat(Math.min(noShowCount - 2, 3))}`,
-      color: "#DC2626",
-      bgColor: "#FEE2E2",
-      icon: <TrendingDown color="#DC2626" size={20} />,
+      title: "약속왕",
+      color: "#2E7D32",
+      bgColor: "#E8F5E9",
+      icon: <Star fill="#FFD700" color="#FFD700" size={20} />,
     };
-  };
+  }
 
+  if (reputationScore >= 61) {
+    return {
+      title: "우수함",
+      color: "#1976D2",
+      bgColor: "#E3F2FD",
+      icon: <TrendingUp color="#1976D2" size={20} />,
+    };
+  }
+
+  if (reputationScore >= 41) {
+    return {
+      title: "일반",
+      color: "#757575",
+      bgColor: "#F5F5F5",
+      icon: <Award color="#757575" size={20} />,
+    };
+  }
+
+  if (reputationScore >= 21) {
+    return {
+      title: "주의 필요",
+      color: "#D97706",
+      bgColor: "#FEF3C7",
+      icon: <TrendingDown color="#D97706" size={20} />,
+    };
+  }
+
+  return {
+    title: "노쇼왕",
+    color: "#DC2626",
+    bgColor: "#FEE2E2",
+    icon: <TrendingDown color="#DC2626" size={20} />,
+  };
+};
   const badge = getReputationBadge();
 
   if (isLoading) {
@@ -192,8 +210,8 @@ export function MyPage() {
                 {badge.title}
               </p>
               <p className="text-xs" style={{ color: badge.color }}>
-                참석률 {attendanceRate}%
-              </p>
+  평판 점수 {reputationScore}점
+</p>
             </div>
           </div>
           <ChevronRight style={{ color: badge.color }} />
@@ -206,7 +224,19 @@ export function MyPage() {
           <h3 className="font-semibold">평판 현황</h3>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="text-center">
+  <p
+    className="text-2xl font-bold"
+    style={{ color: "#566F2F" }}
+  >
+    {reputationScore}
+  </p>
+  <p className="text-xs text-gray-600 mt-1">
+    평판 점수
+  </p>
+</div>
+
+        <div className="grid grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold" style={{ color: "#566F2F" }}>
               {totalReservations}

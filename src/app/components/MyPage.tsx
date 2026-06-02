@@ -21,6 +21,8 @@ import PageLoading from "./PageLoading";
 import { WalletStatusRow } from "./WalletStatusRow";
 // 기획서 반영: 수정된 named export 구조의 모달 불러오기
 import { ReputationModal } from "./ReputationModal";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/firebase";
 
 export function MyPage() {
   const [userData, setUserData] = useState<AppUser | null>(null);

@@ -8,20 +8,6 @@ import { getStoreById } from "@/services/storeService";
 import type { Store } from "@/types/store";
 import PageLoading from "./PageLoading";
 
-interface TimeSlot {
-  time: string;
-  available: boolean;
-}
-
-const mockTimeSlots: TimeSlot[] = [
-  { time: "10:00", available: true },
-  { time: "11:00", available: false },
-  { time: "13:00", available: true },
-  { time: "15:00", available: true },
-  { time: "17:00", available: true },
-  { time: "19:00", available: false },
-];
-
 export function Booking() {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
@@ -29,10 +15,18 @@ export function Booking() {
   const [store, setStore] = useState<Store | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
+  const [selectedHour, setSelectedHour] = useState("");
+  const [selectedMinute, setSelectedMinute] = useState("");
   const [partySizeInput, setPartySizeInput] = useState("1");
+
+  const hours = Array.from({ length: 24 }, (_, i) =>
+    String(i).padStart(2, "0")
+  );
+
+  const minutes = Array.from({ length: 60 }, (_, i) =>
+    String(i).padStart(2, "0")
+  );
 
   useEffect(() => {
     const loadStore = async () => {
@@ -50,11 +44,6 @@ export function Booking() {
   }, [storeId]);
 
   useEffect(() => {
-    if (!store?.allowPartySize) {
-      setPartySizeInput("1");
-      return;
-    }
-
     setPartySizeInput("1");
   }, [store]);
 
@@ -82,7 +71,9 @@ export function Booking() {
 
   const hasReservationNotice =
     store.reservationNotice && store.reservationNotice.trim() !== "";
+
   const partySize = Number(partySizeInput);
+
   const isPartySizeValid =
     !store.allowPartySize ||
     (partySizeInput.trim() !== "" &&
@@ -92,6 +83,28 @@ export function Booking() {
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setSelectedTime(undefined);
+    setSelectedHour("");
+    setSelectedMinute("");
+  };
+
+  const handleHourChange = (hour: string) => {
+    setSelectedHour(hour);
+
+    if (hour && selectedMinute) {
+      setSelectedTime(`${hour}:${selectedMinute}`);
+    } else {
+      setSelectedTime(undefined);
+    }
+  };
+
+  const handleMinuteChange = (minute: string) => {
+    setSelectedMinute(minute);
+
+    if (selectedHour && minute) {
+      setSelectedTime(`${selectedHour}:${minute}`);
+    } else {
+      setSelectedTime(undefined);
+    }
   };
 
   const handlePartySizeChange = (value: string) => {
@@ -220,42 +233,34 @@ export function Booking() {
 
       {selectedDate && (
         <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
-          <h3 className="font-semibold mb-4">예약 가능한 시간</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {mockTimeSlots.map((slot) => (
-              <button
-                key={slot.time}
-                type="button"
-                onClick={() => slot.available && setSelectedTime(slot.time)}
-                disabled={!slot.available}
-                className="py-3 rounded-lg font-medium transition-all"
-                style={{
-                  backgroundColor:
-                    selectedTime === slot.time
-                      ? "#566F2F"
-                      : slot.available
-                      ? "white"
-                      : "#F3F4F6",
-                  color:
-                    selectedTime === slot.time
-                      ? "white"
-                      : slot.available
-                      ? "#566F2F"
-                      : "#9CA3AF",
-                  border: `2px solid ${
-                    selectedTime === slot.time
-                      ? "#566F2F"
-                      : slot.available
-                      ? "#D1D5DB"
-                      : "#E5E7EB"
-                  }`,
-                  cursor: slot.available ? "pointer" : "not-allowed",
-                }}
-              >
-                {slot.time}
-                {!slot.available && <div className="text-xs mt-1">마감</div>}
-              </button>
-            ))}
+          <h3 className="font-semibold mb-4">예약 시간 선택</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              value={selectedHour}
+              onChange={(event) => handleHourChange(event.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg font-semibold outline-none focus:border-[#566F2F] bg-white"
+            >
+              <option value="">시 선택</option>
+              {hours.map((hour) => (
+                <option key={hour} value={hour}>
+                  {hour}시
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedMinute}
+              onChange={(event) => handleMinuteChange(event.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg font-semibold outline-none focus:border-[#566F2F] bg-white"
+            >
+              <option value="">분 선택</option>
+              {minutes.map((minute) => (
+                <option key={minute} value={minute}>
+                  {minute}분
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}

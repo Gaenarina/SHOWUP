@@ -19,6 +19,11 @@ import {
   subscribeDemoAdminReservations,
 } from "@/services/reservationService";
 import type { Reservation } from "@/types/reservation";
+import { usePublicClient, useWriteContract } from "wagmi";
+import {
+  NO_SHOW_DEPOSIT_ADDRESS,
+  noShowDepositAbi,
+} from "@/services/web3/contracts";
 import LoadingOverlay from "./LoadingOverlay";
 import PageLoading from "./PageLoading";
 
@@ -41,6 +46,8 @@ export function DemoAdminReservations() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedReservationId = searchParams.get("reservationId");
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
 
   useEffect(() => {
     const unsubscribe = subscribeDemoAdminReservations((items) => {
@@ -83,7 +90,9 @@ export function DemoAdminReservations() {
 
   const pastReservations = filteredReservations.filter(
     (reservation) =>
-      reservation.status === "completed" || reservation.status === "noshow"
+      reservation.status === "completed" ||
+      reservation.status === "noshow" ||
+      reservation.status === "cancelled"
   );
 
   const getStoreCount = (storeId: string) => {
@@ -120,27 +129,81 @@ export function DemoAdminReservations() {
     if (!selectedReservation) return;
 
     try {
-      setActionMessage("예약을 취소하는 중입니다.");
+      setActionMessage("MetaMask에서 판매자 예약 취소 트랜잭션을 확인해주세요.");
+
+      if (!NO_SHOW_DEPOSIT_ADDRESS) {
+        throw new Error("보증금 컨트랙트 주소가 설정되지 않았습니다.");
+      }
+
+      if (!selectedReservation.chainAppointmentId) {
+        throw new Error("블록체인 예약 ID가 없습니다.");
+      }
+
+      if (!publicClient) {
+        throw new Error("블록체인 네트워크 연결을 확인해주세요.");
+      }
+
+      const hash = await writeContractAsync({
+        address: NO_SHOW_DEPOSIT_ADDRESS,
+        abi: noShowDepositAbi,
+        functionName: "sellerCancelReservation",
+        args: [BigInt(selectedReservation.chainAppointmentId)],
+      });
+
+      setActionMessage("판매자 예약 취소 트랜잭션을 기다리는 중입니다.");
+      await publicClient.waitForTransactionReceipt({ hash });
+
       await cancelReservation(selectedReservation.id);
       setShowCancelModal(false);
       setSelectedReservation(null);
       alert("예약이 취소되었습니다. 고객에게 보증금이 환불되며 판매자 평판에 영향을 줄 수 있습니다.");
     } catch (error) {
       console.error(error);
-      alert("예약 취소 중 오류가 발생했습니다.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "예약 취소 중 오류가 발생했습니다."
+      );
     } finally {
       setActionMessage("");
     }
   };
 
-  const markAsNoShow = async (reservationId: string) => {
+  const markAsNoShow = async (reservation: Reservation) => {
     try {
-      setActionMessage("노쇼 처리를 진행하는 중입니다.");
-      await markReservationAsNoShow(reservationId);
-      alert("노쇼 처리되었습니다. 보증금이 입금됩니다.");
+      setActionMessage("MetaMask에서 노쇼 정산 트랜잭션을 확인해주세요.");
+
+      if (!NO_SHOW_DEPOSIT_ADDRESS) {
+        throw new Error("보증금 컨트랙트 주소가 설정되지 않았습니다.");
+      }
+
+      if (!reservation.chainAppointmentId) {
+        throw new Error("블록체인 예약 ID가 없습니다.");
+      }
+
+      if (!publicClient) {
+        throw new Error("블록체인 네트워크 연결을 확인해주세요.");
+      }
+
+      const hash = await writeContractAsync({
+        address: NO_SHOW_DEPOSIT_ADDRESS,
+        abi: noShowDepositAbi,
+        functionName: "settleNoShow",
+        args: [BigInt(reservation.chainAppointmentId)],
+      });
+
+      setActionMessage("노쇼 정산 트랜잭션을 기다리는 중입니다.");
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      await markReservationAsNoShow(reservation.id);
+      alert("노쇼 처리되었습니다. 보증금이 판매자에게 정산됩니다.");
     } catch (error) {
       console.error(error);
-      alert("노쇼 처리 중 오류가 발생했습니다.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "노쇼 처리 중 오류가 발생했습니다."
+      );
     } finally {
       setActionMessage("");
     }
@@ -193,6 +256,13 @@ export function DemoAdminReservations() {
             <span className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 bg-red-100 text-red-600">
               <XCircle size={16} />
               NOSHOW
+            </span>
+          )}
+
+          {reservation.status === "cancelled" && (
+            <span className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 bg-gray-100 text-gray-500">
+              <XCircle size={16} />
+              예약 취소
             </span>
           )}
 
@@ -282,7 +352,7 @@ export function DemoAdminReservations() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    markAsNoShow(reservation.id);
+                    markAsNoShow(reservation);
                   }}
                   disabled={Boolean(actionMessage)}
                   className="w-full py-2 rounded-lg border-2 font-medium text-sm"

@@ -206,7 +206,7 @@ export function SellerReservationAuth() {
               <Clock className="mx-auto mb-2" size={28} />
               <p className="font-semibold">인증 버튼 활성화 완료</p>
               <p className="text-sm mt-1">
-                고객은 활성화 후 3분 안에 인증할 수 있습니다.
+                고객은 활성화 후 20분 안에 인증할 수 있습니다.
               </p>
             </div>
           ) : isBeforeReservationTime ? (

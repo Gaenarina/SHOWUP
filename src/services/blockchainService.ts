@@ -1,11 +1,9 @@
 import { ethers } from "ethers";
 import UserReputationABI from "../abi/UserReputation.json";
 
-const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+const USER_REPUTATION_ADDRESS =
+  process.env.NEXT_PUBLIC_USER_REPUTATION_ADDRESS;
 
-// ----------------------
-// 1. MetaMask 연결
-// ----------------------
 export const connectWallet = async (): Promise<string> => {
   if (!(window as any).ethereum) {
     throw new Error("MetaMask가 설치되어 있지 않습니다.");
@@ -18,9 +16,6 @@ export const connectWallet = async (): Promise<string> => {
   return accounts[0];
 };
 
-// ----------------------
-// 2. provider
-// ----------------------
 const getProvider = () => {
   if (!(window as any).ethereum) {
     throw new Error("MetaMask가 없습니다.");
@@ -29,31 +24,32 @@ const getProvider = () => {
   return new ethers.BrowserProvider((window as any).ethereum);
 };
 
-// ----------------------
-// 3. signer
-// ----------------------
 const getSigner = async () => {
   const provider = getProvider();
   await provider.send("eth_requestAccounts", []);
   return provider.getSigner();
 };
 
-// ----------------------
-// 4. contract
-// ----------------------
 const getContract = async () => {
+  if (!USER_REPUTATION_ADDRESS) {
+    throw new Error("평판 컨트랙트 주소가 설정되지 않았습니다.");
+  }
+
   const signer = await getSigner();
 
   return new ethers.Contract(
-    CONTRACT_ADDRESS,
+    USER_REPUTATION_ADDRESS,
     UserReputationABI.abi,
     signer
   );
 };
 
-// ----------------------
-// 5. 노쇼 기록
-// ----------------------
+export const registerReputation = async (name: string) => {
+  const contract = await getContract();
+  const tx = await contract.register(name);
+  await tx.wait();
+};
+
 export const recordNoShow = async (userAddress: string) => {
   const contract = await getContract();
 
@@ -63,13 +59,14 @@ export const recordNoShow = async (userAddress: string) => {
   console.log("노쇼 기록 완료");
 };
 
-// ----------------------
-// 6. 평판 조회
-// ----------------------
 export const getReputation = async (userAddress: string) => {
   const contract = await getContract();
+  const [, reputation, noShowCount, isRegistered] =
+    await contract.getUser(userAddress);
 
-  const score = await contract.getReputation(userAddress);
-
-  return score.toString();
+  return {
+    reputation: Number(reputation),
+    noShowCount: Number(noShowCount),
+    isRegistered: Boolean(isRegistered),
+  };
 };

@@ -78,6 +78,13 @@ contract NoShowDeposit {
         uint256 feeRate
     );
 
+    event SellerReservationCancelled(
+        uint256 indexed appointmentId,
+        address indexed seller,
+        address indexed consumer,
+        uint256 refundAmount
+    );
+
     modifier onlyOwner() {
         require(msg.sender == owner, "not owner");
         _;
@@ -178,6 +185,40 @@ contract NoShowDeposit {
         );
     }
 
+    function sellerCancelReservation(uint256 _appointmentId)
+        external
+        onlyExistingDeposit(_appointmentId)
+    {
+        DepositInfo storage depositInfo = deposits[_appointmentId];
+
+        require(
+            msg.sender == depositInfo.seller || msg.sender == owner,
+            "not seller or owner"
+        );
+        require(depositInfo.consumerPaid, "not paid");
+        require(!depositInfo.consumerConfirmed, "consumer already confirmed");
+        require(!depositInfo.settled, "settled");
+
+        uint256 amount = depositInfo.depositAmount;
+        address consumer = depositInfo.consumer;
+        address seller = depositInfo.seller;
+
+        depositInfo.settled = true;
+        depositInfo.result = 5;
+
+        (bool success, ) = payable(consumer).call{value: amount}("");
+        require(success, "refund failed");
+
+        _tryRecordNoShow(seller);
+
+        emit SellerReservationCancelled(
+            _appointmentId,
+            seller,
+            consumer,
+            amount
+        );
+    }
+
     function confirmBySeller(uint256 _appointmentId)
         external
         onlyExistingDeposit(_appointmentId)
@@ -219,7 +260,6 @@ contract NoShowDeposit {
 
     function settleVisited(uint256 _appointmentId)
         external
-        onlyOwner
         onlyExistingDeposit(_appointmentId)
     {
         DepositInfo storage depositInfo = deposits[_appointmentId];
@@ -245,11 +285,14 @@ contract NoShowDeposit {
 
     function settleNoShow(uint256 _appointmentId)
         external
-        onlyOwner
         onlyExistingDeposit(_appointmentId)
     {
         DepositInfo storage depositInfo = deposits[_appointmentId];
 
+        require(
+            msg.sender == depositInfo.seller || msg.sender == owner,
+            "not seller or owner"
+        );
         require(depositInfo.consumerPaid, "not paid");
         require(depositInfo.sellerConfirmed, "seller not confirmed");
         require(!depositInfo.consumerConfirmed, "consumer already confirmed");

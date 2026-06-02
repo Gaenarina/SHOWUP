@@ -4,6 +4,64 @@ export const NO_SHOW_DEPOSIT_ADDRESS =
   (process.env.NEXT_PUBLIC_NO_SHOW_DEPOSIT_ADDRESS ||
     process.env.NEXT_PUBLIC_DEPOSIT_CONTRACT_ADDRESS) as Address | undefined;
 
+export const USER_REPUTATION_ADDRESS = process.env
+  .NEXT_PUBLIC_USER_REPUTATION_ADDRESS as Address | undefined;
+
+export const userReputationAbi = [
+  {
+    inputs: [],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "_name",
+        type: "string",
+      },
+    ],
+    name: "register",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_user",
+        type: "address",
+      },
+    ],
+    name: "getUser",
+    outputs: [
+      {
+        internalType: "string",
+        name: "name",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "reputation",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "noShowCount",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "isRegistered",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
 export const noShowDepositAbi = [
   {
     inputs: [
@@ -156,6 +214,37 @@ export const noShowDepositAbi = [
     type: "event",
   },
   {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "appointmentId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "seller",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "consumer",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "refundAmount",
+        type: "uint256",
+      },
+    ],
+    name: "SellerReservationCancelled",
+    type: "event",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -166,6 +255,146 @@ export const noShowDepositAbi = [
     name: "cancelReservation",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_appointmentId",
+        type: "uint256",
+      },
+    ],
+    name: "sellerCancelReservation",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_appointmentId",
+        type: "uint256",
+      },
+    ],
+    name: "settleVisited",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_appointmentId",
+        type: "uint256",
+      },
+    ],
+    name: "settleNoShow",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_appointmentId",
+        type: "uint256",
+      },
+    ],
+    name: "canConsumerCheckIn",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getContractBalance",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "deposits",
+    outputs: [
+      {
+        internalType: "address",
+        name: "consumer",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "seller",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "depositAmount",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "reservationTime",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "reservationDateStart",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "checkInStartTime",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "consumerPaid",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "sellerConfirmed",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "consumerConfirmed",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "settled",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "result",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {

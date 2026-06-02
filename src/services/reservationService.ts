@@ -1,7 +1,6 @@
 ﻿import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
@@ -14,15 +13,9 @@
 import { auth, db } from "@/firebase";
 import type { Reservation } from "@/types/reservation";
 import type { AppUser } from "@/types/user";
-import { applyNoShowPenalty } from "@/services/penalty";
+import { DEMO_STORE_IDS } from "@/services/storeService";
 
-const VERIFICATION_LIMIT_MS = 3 * 60 * 1000;
-
-export const DEMO_STORE_IDS = [
-  "default-cafe-on",
-  "default-study-cafe",
-  "default-restaurant",
-];
+const VERIFICATION_LIMIT_MS = 20 * 60 * 1000;
 
 type CreateReservationInput = {
   consumerId: string;
@@ -244,7 +237,6 @@ export const verifyConsumer = async (reservationId: string) => {
   }
 
   if (Date.now() > expiresAt.getTime()) {
-    await applyNoShowPenalty(reservationId);
     throw new Error("인증 시간이 지나 노쇼 처리되었습니다.");
   }
 
@@ -271,7 +263,9 @@ export const expireReservationIfNeeded = async (reservationId: string) => {
     expiresAt &&
     Date.now() > expiresAt.getTime()
   ) {
-    await applyNoShowPenalty(reservationId);
+    await updateDoc(reservationRef, {
+      verificationEnabled: false,
+    });
   }
 };
 
@@ -291,7 +285,10 @@ export const expireOverdueReservations = async (reservations: Reservation[]) => 
 };
 
 export const cancelReservation = async (reservationId: string) => {
-  await deleteDoc(doc(db, "reservations", reservationId));
+  await updateDoc(doc(db, "reservations", reservationId), {
+    status: "cancelled",
+    verificationEnabled: false,
+  });
 };
 
 export const markReservationAsCancelled = async (reservationId: string) => {
@@ -302,5 +299,8 @@ export const markReservationAsCancelled = async (reservationId: string) => {
 };
 
 export const markReservationAsNoShow = async (reservationId: string) => {
-  await applyNoShowPenalty(reservationId);
+  await updateDoc(doc(db, "reservations", reservationId), {
+    status: "noshow",
+    verificationEnabled: false,
+  });
 };

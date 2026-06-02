@@ -68,10 +68,47 @@ export function ReservationAuth() {
   }, [reservationId, reservation]);
 
   const handleVerify = async () => {
-    if (!reservationId) return;
+    if (!reservationId || !reservation) return;
 
     try {
       setIsSubmitting(true);
+      setActionMessage("MetaMask에서 참석 인증 트랜잭션을 확인해주세요.");
+
+      if (!NO_SHOW_DEPOSIT_ADDRESS) {
+        throw new Error("보증금 컨트랙트 주소가 설정되지 않았습니다.");
+      }
+
+      if (!reservation.chainAppointmentId) {
+        throw new Error("블록체인 예약 ID가 없습니다.");
+      }
+
+      if (!publicClient) {
+        throw new Error("블록체인 네트워크 연결을 확인해주세요.");
+      }
+
+      const appointmentId = BigInt(reservation.chainAppointmentId);
+
+      const confirmHash = await writeContractAsync({
+        address: NO_SHOW_DEPOSIT_ADDRESS,
+        abi: noShowDepositAbi,
+        functionName: "confirmByConsumer",
+        args: [appointmentId],
+      });
+
+      setActionMessage("참석 인증 트랜잭션을 기다리는 중입니다.");
+      await publicClient.waitForTransactionReceipt({ hash: confirmHash });
+
+      setActionMessage("보증금 환불 정산 트랜잭션을 확인해주세요.");
+      const settleHash = await writeContractAsync({
+        address: NO_SHOW_DEPOSIT_ADDRESS,
+        abi: noShowDepositAbi,
+        functionName: "settleVisited",
+        args: [appointmentId],
+      });
+
+      setActionMessage("보증금 환불 정산을 기다리는 중입니다.");
+      await publicClient.waitForTransactionReceipt({ hash: settleHash });
+
       await verifyConsumer(reservationId);
     } catch (error) {
       console.error(error);
@@ -82,6 +119,7 @@ export function ReservationAuth() {
       );
     } finally {
       setIsSubmitting(false);
+      setActionMessage("");
     }
   };
 
@@ -166,7 +204,7 @@ export function ReservationAuth() {
           </h2>
 
           <p className="text-gray-600 mb-6">
-            판매자가 인증 버튼을 활성화한 뒤 3분 안에 인증을 완료하세요.
+            판매자가 인증 버튼을 활성화한 뒤 20분 안에 인증을 완료하세요.
           </p>
 
           <div className="bg-[#FAFAF7] rounded-2xl p-4 text-left mb-6">

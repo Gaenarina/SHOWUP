@@ -13,14 +13,9 @@ interface TimeSlot {
   available: boolean;
 }
 
-const mockTimeSlots: TimeSlot[] = [
-  { time: "10:00", available: true },
-  { time: "11:00", available: false },
-  { time: "13:00", available: true },
-  { time: "15:00", available: true },
-  { time: "17:00", available: true },
-  { time: "19:00", available: false },
-];
+const getDateKey = (date: Date) => format(date, "yyyy-MM-dd");
+
+const parseDateKey = (dateKey: string) => new Date(`${dateKey}T00:00:00`);
 
 export function Booking() {
   const { storeId } = useParams<{ storeId: string }>();
@@ -83,6 +78,26 @@ export function Booking() {
   const hasReservationNotice =
     store.reservationNotice && store.reservationNotice.trim() !== "";
   const partySize = Number(partySizeInput);
+  const blockedDateSet = new Set(store.blockedDates ?? []);
+  const blockedDateObjects = (store.blockedDates ?? []).map(parseDateKey);
+  const selectedDateKey = selectedDate ? getDateKey(selectedDate) : "";
+  const isSelectedDateBlocked =
+    Boolean(selectedDateKey) && blockedDateSet.has(selectedDateKey);
+  const blockedTimeSet = new Set(
+    selectedDateKey
+      ? store.blockedDateTimeSlots?.[selectedDateKey] ?? []
+      : []
+  );
+  const hasConfiguredTimeSlots =
+    store.availableTimeSlots && store.availableTimeSlots.length > 0;
+  const storeTimeSlots = (store.availableTimeSlots ?? []).map((time) => ({
+    time,
+    available:
+      store.available &&
+      !isSelectedDateBlocked &&
+      !blockedTimeSet.has(time),
+  }));
+  const hasAvailableTimeSlot = storeTimeSlots.some((slot) => slot.available);
   const isPartySizeValid =
     !store.allowPartySize ||
     (partySizeInput.trim() !== "" &&
@@ -90,6 +105,10 @@ export function Booking() {
       partySize >= 1);
 
   const handleDateSelect = (date: Date | undefined) => {
+    if (date && blockedDateSet.has(getDateKey(date))) {
+      return;
+    }
+
     setSelectedDate(date);
     setSelectedTime(undefined);
   };
@@ -110,6 +129,15 @@ export function Booking() {
 
   const handleConfirm = () => {
     if (!store || !selectedDate || !selectedTime) return;
+
+    const selectedSlot = storeTimeSlots.find(
+      (slot) => slot.time === selectedTime
+    );
+
+    if (!store.available || !selectedSlot?.available) {
+      alert("선택한 날짜 또는 시간은 예약할 수 없습니다.");
+      return;
+    }
 
     if (!isPartySizeValid) {
       alert("예약 인원은 1명 이상으로 입력해주세요.");
@@ -168,7 +196,7 @@ export function Booking() {
             selected={selectedDate}
             onSelect={handleDateSelect}
             locale={ko}
-            disabled={{ before: new Date() }}
+            disabled={[{ before: new Date() }, ...blockedDateObjects]}
             modifiersStyles={{
               selected: {
                 backgroundColor: "#566F2F",
@@ -221,8 +249,25 @@ export function Booking() {
       {selectedDate && (
         <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
           <h3 className="font-semibold mb-4">예약 가능한 시간</h3>
+          {!store.available && (
+            <p className="text-sm text-red-500 mb-3">
+              판매자가 현재 예약을 마감한 상태입니다.
+            </p>
+          )}
+          {store.available && isSelectedDateBlocked && (
+            <p className="text-sm text-red-500 mb-3">
+              판매자가 이 날짜의 예약을 받지 않습니다.
+            </p>
+          )}
+          {store.available && !isSelectedDateBlocked && !hasAvailableTimeSlot && (
+            <p className="text-sm text-red-500 mb-3">
+              {hasConfiguredTimeSlots
+                ? "이 날짜에는 예약 가능한 시간이 없습니다."
+                : "판매자가 아직 예약 가능 시간을 설정하지 않았습니다."}
+            </p>
+          )}
           <div className="grid grid-cols-3 gap-3">
-            {mockTimeSlots.map((slot) => (
+            {storeTimeSlots.map((slot) => (
               <button
                 key={slot.time}
                 type="button"
@@ -281,15 +326,20 @@ export function Booking() {
       <button
         type="button"
         onClick={handleConfirm}
-        disabled={!selectedDate || !selectedTime || !isPartySizeValid}
+        disabled={
+          !store.available ||
+          !selectedDate ||
+          !selectedTime ||
+          !isPartySizeValid
+        }
         className="w-full py-4 rounded-lg text-white font-semibold text-lg shadow-md transition-all"
         style={{
           backgroundColor:
-            selectedDate && selectedTime && isPartySizeValid
+            store.available && selectedDate && selectedTime && isPartySizeValid
               ? "#566F2F"
               : "#D1D5DB",
           cursor:
-            selectedDate && selectedTime && isPartySizeValid
+            store.available && selectedDate && selectedTime && isPartySizeValid
               ? "pointer"
               : "not-allowed",
         }}

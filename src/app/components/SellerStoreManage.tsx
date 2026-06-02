@@ -10,6 +10,8 @@ import {
   Wallet,
   CheckCircle,
   ArrowLeft,
+  Clock,
+  Users,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebase";
@@ -26,6 +28,7 @@ import {
 } from "@/services/storeService";
 import type { AppUser } from "@/types/user";
 import type { Store as StoreType } from "@/types/store";
+import { appConfig } from "@/config/appConfig";
 import { WalletConnectButton } from "./WalletConnectButton";
 import LoadingOverlay from "./LoadingOverlay";
 import PageLoading from "./PageLoading";
@@ -36,6 +39,10 @@ type StoreForm = {
   description: string;
   reservationNotice: string;
   baseDeposit: string;
+  availableTimeSlots: string;
+  blockedDates: string;
+  blockedDateTimeSlots: string;
+  maxReservationsPerTimeSlot: string;
   available: boolean;
 };
 
@@ -44,8 +51,70 @@ const initialForm: StoreForm = {
   address: "",
   description: "",
   reservationNotice: "",
-  baseDeposit: "0.010",
+  baseDeposit: appConfig.defaultBaseDepositEth.toFixed(3),
+  availableTimeSlots: appConfig.timeSlots.join(", "),
+  blockedDates: "",
+  blockedDateTimeSlots: "",
+  maxReservationsPerTimeSlot: "",
   available: true,
+};
+
+const parseAvailableTimeSlots = (value: string) => {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,]+/)
+        .map((item) => item.trim())
+        .filter((item) => /^\d{1,2}:\d{2}$/.test(item))
+        .map((item) => {
+          const [hour, minute] = item.split(":");
+          return `${hour.padStart(2, "0")}:${minute}`;
+        })
+    )
+  ).sort();
+};
+
+const parseDateList = (value: string) => {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,]+/)
+        .map((item) => item.trim())
+        .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item))
+    )
+  ).sort();
+};
+
+const parseBlockedDateTimeSlots = (value: string) => {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .reduce<Record<string, string[]>>((result, line) => {
+      const match = line.match(/^(\d{4}-\d{2}-\d{2})\s*:\s*(.+)$/);
+
+      if (!match) {
+        return result;
+      }
+
+      const normalizedDate = match[1];
+      const times = parseAvailableTimeSlots(match[2]);
+      if (times.length > 0) {
+        result[normalizedDate] = times;
+      }
+
+      return result;
+    }, {});
+};
+
+const formatBlockedDateTimeSlots = (
+  blockedDateTimeSlots?: Record<string, string[]>
+) => {
+  if (!blockedDateTimeSlots) return "";
+
+  return Object.entries(blockedDateTimeSlots)
+    .map(([date, times]) => `${date}: ${times.join(", ")}`)
+    .join("\n");
 };
 
 export function SellerStoreManage() {
@@ -70,7 +139,20 @@ export function SellerStoreManage() {
       address: storeData.address ?? "",
       description: storeData.description ?? "",
       reservationNotice: storeData.reservationNotice ?? "",
-      baseDeposit: String(storeData.baseDeposit ?? 0.01),
+      baseDeposit: String(
+        storeData.baseDeposit ?? appConfig.defaultBaseDepositEth
+      ),
+      availableTimeSlots: (storeData.availableTimeSlots ?? appConfig.timeSlots)
+        .join(", "),
+      blockedDates: (storeData.blockedDates ?? []).join(", "),
+      blockedDateTimeSlots: formatBlockedDateTimeSlots(
+        storeData.blockedDateTimeSlots
+      ),
+      maxReservationsPerTimeSlot:
+        storeData.maxReservationsPerTimeSlot === null ||
+        storeData.maxReservationsPerTimeSlot === undefined
+          ? ""
+          : String(storeData.maxReservationsPerTimeSlot),
       available: Boolean(storeData.available),
     });
     setStore(storeData);
@@ -171,6 +253,16 @@ export function SellerStoreManage() {
     if (!profile || profile.role !== "seller") return;
 
     const baseDeposit = Number(form.baseDeposit);
+    const availableTimeSlots = parseAvailableTimeSlots(
+      form.availableTimeSlots
+    );
+    const blockedDates = parseDateList(form.blockedDates);
+    const blockedDateTimeSlots = parseBlockedDateTimeSlots(
+      form.blockedDateTimeSlots
+    );
+    const maxReservationsPerTimeSlot = form.maxReservationsPerTimeSlot.trim()
+      ? Number(form.maxReservationsPerTimeSlot)
+      : null;
 
     if (!form.name.trim()) {
       setMessage("매장명을 입력해주세요.");
@@ -189,6 +281,20 @@ export function SellerStoreManage() {
 
     if (Number.isNaN(baseDeposit) || baseDeposit < 0) {
       setMessage("기본 보증금은 0 이상의 숫자로 입력해주세요.");
+      return;
+    }
+
+    if (availableTimeSlots.length === 0) {
+      setMessage("예약 가능 시간을 1개 이상 입력해주세요. 예: 10:00, 14:30");
+      return;
+    }
+
+    if (
+      maxReservationsPerTimeSlot !== null &&
+      (!Number.isInteger(maxReservationsPerTimeSlot) ||
+        maxReservationsPerTimeSlot < 1)
+    ) {
+      setMessage("동시간 예약 수는 1 이상의 정수로 입력하거나 비워두세요.");
       return;
     }
 
@@ -221,6 +327,10 @@ export function SellerStoreManage() {
         sellerWalletAddress,
         baseDeposit,
         available: form.available,
+        availableTimeSlots,
+        blockedDates,
+        blockedDateTimeSlots,
+        maxReservationsPerTimeSlot,
         allowPartySize: store?.allowPartySize,
         minPartySize: store?.minPartySize,
         maxPartySize: store?.maxPartySize,
@@ -471,6 +581,83 @@ export function SellerStoreManage() {
               className="w-full mt-2 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7] outline-none text-sm focus:ring-2"
               style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
             />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold flex items-center gap-1">
+              <Clock size={16} />
+              예약 가능 시간
+            </span>
+            <textarea
+              value={form.availableTimeSlots}
+              onChange={(e) =>
+                handleChange("availableTimeSlots", e.target.value)
+              }
+              placeholder={`예: 10:00, 11:30, 14:00\n줄바꿈으로도 입력할 수 있습니다.`}
+              rows={3}
+              className="w-full mt-2 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7] outline-none text-sm resize-none focus:ring-2"
+              style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              입력한 시간만 고객 예약 화면에 표시됩니다.
+            </p>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold flex items-center gap-1">
+              <Clock size={16} />
+              예약 차단 날짜
+            </span>
+            <textarea
+              value={form.blockedDates}
+              onChange={(e) => handleChange("blockedDates", e.target.value)}
+              placeholder={`예: 2026-06-10, 2026-06-17\n해당 날짜는 하루 전체 예약이 막힙니다.`}
+              rows={3}
+              className="w-full mt-2 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7] outline-none text-sm resize-none focus:ring-2"
+              style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold flex items-center gap-1">
+              <Clock size={16} />
+              예약 차단 시간
+            </span>
+            <textarea
+              value={form.blockedDateTimeSlots}
+              onChange={(e) =>
+                handleChange("blockedDateTimeSlots", e.target.value)
+              }
+              placeholder={`예: 2026-06-12: 10:00, 14:00\n2026-06-13: 18:00`}
+              rows={4}
+              className="w-full mt-2 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7] outline-none text-sm resize-none focus:ring-2"
+              style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              특정 날짜의 일부 시간만 받을 수 없을 때 사용합니다.
+            </p>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold flex items-center gap-1">
+              <Users size={16} />
+              동시간 예약 수
+            </span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={form.maxReservationsPerTimeSlot}
+              onChange={(e) =>
+                handleChange("maxReservationsPerTimeSlot", e.target.value)
+              }
+              placeholder="비워두면 무제한"
+              className="w-full mt-2 px-4 py-3 rounded-xl border border-gray-200 bg-[#FAFAF7] outline-none text-sm focus:ring-2"
+              style={{ "--tw-ring-color": "#566F2F" } as React.CSSProperties}
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              예: 1을 입력하면 같은 날짜와 시간에 예약 1건만 받을 수 있습니다.
+            </p>
           </label>
 
           <button

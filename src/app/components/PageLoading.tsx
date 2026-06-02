@@ -10,7 +10,7 @@ const paddingByType = {
 };
 
 export default function PageLoading({
-  message = "濡쒕뵫 以묒엯?덈떎.",
+  message = "로딩 중입니다.",
   bottomPadding = "default",
 }: PageLoadingProps) {
   return (

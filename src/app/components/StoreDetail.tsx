@@ -2,6 +2,7 @@
 import { useParams, Link } from "./routerCompat";
 import { MapPin, Clock, DollarSign, Star } from "lucide-react";
 import { getStoreById } from "@/services/storeService";
+import { appConfig } from "@/config/appConfig";
 
 interface StoreInfo {
   id: string;
@@ -17,38 +18,6 @@ interface StoreInfo {
   sellerWalletAddress?: string;
   storeType?: string;
 }
-
-/*
-const mockStoreData: Record<string, StoreInfo> = {
-  "1": {
-    id: "1",
-    name: "카페 온",
-    address: "안성시 중앙로 123",
-    baseDeposit: "0.01 ETH",
-    description: "조용하고 아늑한 분위기의 카페입니다. 스터디와 작업에 좋은 공간을 제공합니다.",
-    hours: "09:00 - 22:00",
-    rating: 4.5,
-  },
-  "2": {
-    id: "2",
-    name: "스터디 카페 집중",
-    address: "안성시 대학로 456",
-    baseDeposit: "0.015 ETH",
-    description: "집중하기 좋은 개인 공간과 무료 음료를 제공하는 스터디 카페입니다.",
-    hours: "08:00 - 24:00",
-    rating: 4.8,
-  },
-  "3": {
-    id: "3",
-    name: "오늘의 미식가",
-    address: "천안시 번화가 789",
-    baseDeposit: "0.02 ETH",
-    description: "신선한 재료로 만든 정성 가득한 식사를 즐길 수 있는 식당입니다.",
-    hours: "11:00 - 21:00",
-    rating: 4.7,
-  },
-};
-*/
 
 export function StoreDetail() {
   const { id } = useParams<{ id: string }>();
@@ -74,10 +43,12 @@ export function StoreDetail() {
           id: storeData.id,
           name: storeData.name || "이름 없음",
           address: storeData.address || "주소 정보 없음",
-          baseDeposit: `${Number(storeData.baseDeposit ?? 0.01).toFixed(3)} ETH`,
+          baseDeposit: `${Number(
+            storeData.baseDeposit ?? appConfig.defaultBaseDepositEth
+          ).toFixed(3)} ETH`,
           description: storeData.description || "등록된 설명이 없습니다.",
-          hours: "운영 시간 정보 없음",
-          rating: 4.5,
+          hours: appConfig.defaultStoreHoursText,
+          rating: appConfig.defaultStoreRating,
           available: storeData.available,
           sellerId: storeData.sellerId,
           sellerName: storeData.sellerName,

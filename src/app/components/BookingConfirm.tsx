@@ -4,14 +4,16 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Wallet, AlertCircle } from "lucide-react";
 import { isAddress, parseEther } from "viem";
-import { useAccount, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { auth } from "@/firebase";
-import { getUserProfile } from "@/services/authService";
 import { createReservation } from "@/services/reservationService";
 import { getStoreById } from "@/services/storeService";
+import { appConfig } from "@/config/appConfig";
 import {
   NO_SHOW_DEPOSIT_ADDRESS,
+  USER_REPUTATION_ADDRESS,
   noShowDepositAbi,
+  userReputationAbi,
 } from "@/services/web3/contracts";
 import { WalletConnectButton } from "./WalletConnectButton";
 import LoadingOverlay from "./LoadingOverlay";
@@ -63,45 +65,72 @@ export function BookingConfirm() {
     sellerWalletAddress: routeSellerWalletAddress = "",
     storeName,
     address,
-    baseDeposit = 0.01,
+    baseDeposit = appConfig.defaultBaseDepositEth,
     date,
     time,
     partySize = 1,
   } = location.state || {};
 
-  const [userNoShowCount, setUserNoShowCount] = useState(0);
+  const [userNoShowCount, setUserNoShowCount] = useState<number | null>(null);
   const [sellerWalletAddress, setSellerWalletAddress] = useState(
     routeSellerWalletAddress
   );
   const [walletError, setWalletError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { address: walletAddress, isConnected } = useAccount();
+  const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
-  const penaltyDeposit = userNoShowCount * 0.005;
+  const penaltyDeposit =
+    (userNoShowCount ?? 0) * appConfig.noShowExtraDepositEth;
   const totalDeposit = baseDeposit + penaltyDeposit;
   const walletConnected = isConnected && Boolean(walletAddress);
 
   useEffect(() => {
-    const loadUserProfile = async () => {
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) return;
-
-      const consumerProfile = await getUserProfile(currentUser.uid);
+    const loadBookingContext = async () => {
       const store = storeId ? await getStoreById(storeId) : null;
 
-      setUserNoShowCount(consumerProfile?.noShowCount ?? 0);
       setSellerWalletAddress(
         routeSellerWalletAddress ||
           store?.sellerWalletAddress ||
           (store as any)?.walletAddress ||
           ""
       );
+
+      if (
+        !publicClient ||
+        !USER_REPUTATION_ADDRESS ||
+        !walletAddress ||
+        !isAddress(walletAddress)
+      ) {
+        setUserNoShowCount(null);
+        return;
+      }
+
+      const reputationContractCode = await publicClient.getCode({
+        address: USER_REPUTATION_ADDRESS,
+      });
+
+      if (!reputationContractCode) {
+        setUserNoShowCount(null);
+        return;
+      }
+
+      const [, , noShowCount, isRegistered] = await publicClient.readContract({
+        address: USER_REPUTATION_ADDRESS,
+        abi: userReputationAbi,
+        functionName: "getUser",
+        args: [walletAddress],
+      });
+
+      setUserNoShowCount(isRegistered ? Number(noShowCount) : 0);
     };
 
-    loadUserProfile();
-  }, [routeSellerWalletAddress, storeId]);
+    loadBookingContext().catch((error) => {
+      console.warn(error);
+      setUserNoShowCount(null);
+    });
+  }, [publicClient, routeSellerWalletAddress, storeId, walletAddress]);
 
   if (!storeId || !sellerId || !storeName || !date || !time) {
     return (
@@ -290,7 +319,9 @@ export function BookingConfirm() {
 
           <div className="flex justify-between" style={{ color: "#92400E" }}>
             <span>내 노쇼 기록</span>
-            <span className="font-semibold">{userNoShowCount}회</span>
+            <span className="font-semibold">
+              {userNoShowCount === null ? "컨트랙트 확인 필요" : `${userNoShowCount}회`}
+            </span>
           </div>
 
           <div className="flex justify-between" style={{ color: "#92400E" }}>
@@ -313,7 +344,7 @@ export function BookingConfirm() {
         </div>
       </div>
 
-      {userNoShowCount > 0 && (
+      {(userNoShowCount ?? 0) > 0 && (
         <div
           className="rounded-lg p-4 mb-4 flex items-start gap-3"
           style={{ backgroundColor: "#FEE2E2", border: "1px solid #EF4444" }}

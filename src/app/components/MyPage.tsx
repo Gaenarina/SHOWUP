@@ -12,32 +12,37 @@ import {
   Store,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
+import { auth, db } from "../../firebase"; 
+import { doc, onSnapshot } from "firebase/firestore"; 
 import { getUserProfile, logoutUser } from "../../services/authService";
 import { subscribeConsumerReservations } from "../../services/reservationService";
 import type { AppUser } from "../../types/user";
 import type { Reservation } from "../../types/reservation";
 import PageLoading from "./PageLoading";
 import { WalletStatusRow } from "./WalletStatusRow";
-// 5번 지시사항: 모달 컴포넌트 임포트
-import ReputationModal from "./ReputationModal";
+// 기획서 반영: 수정된 named export 구조의 모달 불러오기
+import { ReputationModal } from "./ReputationModal";
 
 export function MyPage() {
   const [userData, setUserData] = useState<AppUser | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 1번 지시사항: 모달 열림/닫힘 상태 state 추가
-  const [showReputationModal, setShowReputationModal] = useState(false);
+  // 5번 지시사항: 기획서 가이드와 명칭 통일 (showReputation)
+  const [showReputation, setShowReputation] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     let unsubscribeReservations: (() => void) | undefined;
+    let unsubscribeUser: (() => void) | undefined; 
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (unsubscribeReservations) {
         unsubscribeReservations();
+      }
+      if (unsubscribeUser) {
+        unsubscribeUser();
       }
 
       if (!user) {
@@ -47,10 +52,17 @@ export function MyPage() {
         return;
       }
 
-      const profile = await getUserProfile(user.uid);
+      {/* 6번 지시사항: 즉시 반영용 실시간 리스너 완벽 유지 */}
+      const userRef = doc(db, "users", user.uid);
+      unsubscribeUser = onSnapshot(userRef, (snap) => {
+        if (!snap.exists()) {
+          setUserData(null);
+          return;
+        }
 
-      setUserData(profile);
-      setIsLoading(false);
+        setUserData(snap.data() as AppUser);
+        setIsLoading(false);
+      });
 
       unsubscribeReservations = subscribeConsumerReservations(
         user.uid,
@@ -63,6 +75,10 @@ export function MyPage() {
 
       if (unsubscribeReservations) {
         unsubscribeReservations();
+      }
+
+      if (unsubscribeUser) {
+        unsubscribeUser();
       }
     };
   }, []);
@@ -204,9 +220,9 @@ export function MyPage() {
           </div>
         </div>
 
-        {/* 2번 지시사항: 클릭 핸들러 및 cursor-pointer 스타일 추가 */}
+        {/* 5번 지시사항: 평판 카드 클릭 이벤트 및 커서 스타일 반영 */}
         <div
-          onClick={() => setShowReputationModal(true)}
+          onClick={() => setShowReputation(true)}
           className="rounded-lg p-4 flex items-center justify-between cursor-pointer"
           style={{ backgroundColor: badge.bgColor }}
         >
@@ -311,11 +327,11 @@ export function MyPage() {
         <span className="font-medium">로그아웃</span>
       </button>
 
-      {/* 6번 지시사항: showReputationModal이 true일 때 모달 컴포넌트 렌더링 */}
-      {showReputationModal && (
+      {/* 5번 지시사항: 모달 조건부 렌더링 세팅 완료 */}
+      {showReputation && userData && (
         <ReputationModal
           score={userData.reputationScore ?? 100}
-          onClose={() => setShowReputationModal(false)}
+          onClose={() => setShowReputation(false)}
         />
       )}
     </div>

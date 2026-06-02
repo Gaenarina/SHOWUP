@@ -4,8 +4,8 @@
   signOut,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
-import type { AppUser, UserRole } from "../types/user";
+import { auth, db } from "@/firebase";
+import type { AppUser, UserRole } from "@/types/user";
 
 export const registerUser = async ({
   email,

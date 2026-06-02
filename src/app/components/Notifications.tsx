@@ -4,9 +4,9 @@ import { ko } from "date-fns/locale";
 import { Bell, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "./routerCompat";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
-import { subscribeConsumerReservations } from "../../services/reservationService";
-import type { Reservation } from "../../types/reservation";
+import { auth } from "@/firebase";
+import { subscribeConsumerReservations } from "@/services/reservationService";
+import type { Reservation } from "@/types/reservation";
 import PageLoading from "./PageLoading";
 
 type AppNotification = {

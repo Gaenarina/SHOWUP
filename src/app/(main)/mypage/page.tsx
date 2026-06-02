@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { MyPage } from "../../components/MyPage";
 

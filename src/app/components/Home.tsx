@@ -1,8 +1,8 @@
 ﻿import { useEffect, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "./routerCompat";
 import { Search, MapPin } from "lucide-react";
-import { subscribeStores } from "../../services/storeService";
-import type { Store } from "../../types/store";
+import { subscribeStores } from "@/services/storeService";
+import type { Store } from "@/types/store";
 import PageLoading from "./PageLoading";
 
 export function Home() {

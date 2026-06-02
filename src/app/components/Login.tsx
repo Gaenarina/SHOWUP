@@ -2,8 +2,8 @@
 import { Link, useNavigate } from "./routerCompat";
 import type { FormEvent } from "react";
 import { User, Store, Mail, Lock } from "lucide-react";
-import { getUserProfile, loginUser, logoutUser } from "../../services/authService";
-import type { UserRole } from "../../types/user";
+import { getUserProfile, loginUser, logoutUser } from "@/services/authService";
+import type { UserRole } from "@/types/user";
 import LoadingOverlay from "./LoadingOverlay";
 
 export function Login() {

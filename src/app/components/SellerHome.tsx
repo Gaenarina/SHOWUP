@@ -14,13 +14,13 @@ import {
   Store,
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
-import { getUserProfile, logoutUser } from "../../services/authService";
-import { subscribeSellerReservations } from "../../services/reservationService";
-import { subscribeSellerStore } from "../../services/storeService";
-import type { AppUser } from "../../types/user";
-import type { Reservation } from "../../types/reservation";
-import type { Store as StoreType } from "../../types/store";
+import { auth } from "@/firebase";
+import { getUserProfile, logoutUser } from "@/services/authService";
+import { subscribeSellerReservations } from "@/services/reservationService";
+import { subscribeSellerStore } from "@/services/storeService";
+import type { AppUser } from "@/types/user";
+import type { Reservation } from "@/types/reservation";
+import type { Store as StoreType } from "@/types/store";
 import PageLoading from "./PageLoading";
 
 export function SellerHome() {

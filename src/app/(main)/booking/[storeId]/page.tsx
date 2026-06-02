@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Booking } from "../../../components/Booking";
 

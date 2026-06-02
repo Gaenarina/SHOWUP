@@ -1,4 +1,4 @@
-export type UserRole = "consumer" | "seller";
+﻿export type UserRole = "consumer" | "seller";
 
 export type AppUser = {
   uid: string;

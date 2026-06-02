@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { useParams, Link } from "./routerCompat";
 import { MapPin, Clock, DollarSign, Star } from "lucide-react";
-import { getStoreById } from "../services/storeService";
+import { getStoreById } from "@/services/storeService";
 
 interface StoreInfo {
   id: string;
@@ -74,10 +74,10 @@ export function StoreDetail() {
           id: storeData.id,
           name: storeData.name || "이름 없음",
           address: storeData.address || "주소 정보 없음",
-          baseDeposit: storeData.baseDeposit || "0.010 ETH",
+          baseDeposit: `${Number(storeData.baseDeposit ?? 0.01).toFixed(3)} ETH`,
           description: storeData.description || "등록된 설명이 없습니다.",
-          hours: storeData.hours || "운영 시간 정보 없음",
-          rating: storeData.rating || 4.5,
+          hours: "운영 시간 정보 없음",
+          rating: 4.5,
           available: storeData.available,
           sellerId: storeData.sellerId,
           sellerName: storeData.sellerName,

@@ -2,10 +2,10 @@
 import { Link, useNavigate } from "./routerCompat";
 import { Bell, CheckCircle, AlertCircle, Store } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase";
-import { getUserProfile } from "../../services/authService";
-import { subscribeSellerReservations } from "../../services/reservationService";
-import type { Reservation } from "../../types/reservation";
+import { auth } from "@/firebase";
+import { getUserProfile } from "@/services/authService";
+import { subscribeSellerReservations } from "@/services/reservationService";
+import type { Reservation } from "@/types/reservation";
 import PageLoading from "./PageLoading";
 
 type SellerNotification = {

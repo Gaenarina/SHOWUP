@@ -2,6 +2,7 @@
 import { useNavigate, useParams } from "./routerCompat";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
 import { usePublicClient, useWriteContract } from "wagmi";
+import type { Address } from "viem";
 import {
   expireReservationIfNeeded,
   subscribeReservation,
@@ -74,7 +75,10 @@ export function ReservationAuth() {
       setIsSubmitting(true);
       setActionMessage("MetaMask에서 참석 인증 트랜잭션을 확인해주세요.");
 
-      if (!NO_SHOW_DEPOSIT_ADDRESS) {
+      const depositContractAddress = (reservation.contractAddress ||
+        NO_SHOW_DEPOSIT_ADDRESS) as Address | undefined;
+
+      if (!depositContractAddress) {
         throw new Error("보증금 컨트랙트 주소가 설정되지 않았습니다.");
       }
 
@@ -87,12 +91,63 @@ export function ReservationAuth() {
       }
 
       const appointmentId = BigInt(reservation.chainAppointmentId);
+      const contractCode = await publicClient.getCode({
+        address: depositContractAddress,
+      });
+
+      if (!contractCode) {
+        throw new Error(
+          "이 예약의 보증금 컨트랙트가 현재 네트워크에 배포되어 있지 않습니다. 컨트랙트 재배포 후 만든 새 예약으로 다시 진행해주세요."
+        );
+      }
+
+      const depositInfo = await publicClient.readContract({
+        address: depositContractAddress,
+        abi: noShowDepositAbi,
+        functionName: "deposits",
+        args: [appointmentId],
+      });
+
+      const consumerPaid = depositInfo[6];
+      const sellerConfirmed = depositInfo[7];
+      const consumerConfirmed = depositInfo[8];
+      const settled = depositInfo[9];
+
+      if (!consumerPaid) {
+        throw new Error(
+          "블록체인에 이 예약의 보증금 기록이 없습니다. 재배포 이전 예약이면 새로 예약을 생성해주세요."
+        );
+      }
+
+      if (!sellerConfirmed) {
+        throw new Error(
+          "판매자 인증이 아직 블록체인에 완료되지 않았습니다. 판매자가 인증 버튼을 먼저 활성화해야 합니다."
+        );
+      }
+
+      if (consumerConfirmed || settled) {
+        throw new Error("이미 인증 또는 정산이 완료된 예약입니다.");
+      }
+
+      const canCheckIn = await publicClient.readContract({
+        address: depositContractAddress,
+        abi: noShowDepositAbi,
+        functionName: "canConsumerCheckIn",
+        args: [appointmentId],
+      });
+
+      if (!canCheckIn) {
+        throw new Error(
+          "블록체인 인증 가능 시간이 아니거나 인증 시간이 만료된 예약입니다."
+        );
+      }
 
       const confirmHash = await writeContractAsync({
-        address: NO_SHOW_DEPOSIT_ADDRESS,
+        address: depositContractAddress,
         abi: noShowDepositAbi,
         functionName: "confirmByConsumer",
         args: [appointmentId],
+        gas: BigInt(200000),
       });
 
       setActionMessage("참석 인증 트랜잭션을 기다리는 중입니다.");
@@ -100,10 +155,11 @@ export function ReservationAuth() {
 
       setActionMessage("보증금 환불 정산 트랜잭션을 확인해주세요.");
       const settleHash = await writeContractAsync({
-        address: NO_SHOW_DEPOSIT_ADDRESS,
+        address: depositContractAddress,
         abi: noShowDepositAbi,
         functionName: "settleVisited",
         args: [appointmentId],
+        gas: BigInt(300000),
       });
 
       setActionMessage("보증금 환불 정산을 기다리는 중입니다.");

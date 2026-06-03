@@ -99,6 +99,14 @@ export function Reservations() {
     return Date.now() <= reservation.verificationExpiresAt.getTime();
   };
 
+  const getIsVerificationExpired = (reservation: Reservation) => {
+    if (reservation.consumerVerified) return false;
+    if (reservation.status !== "confirmed") return false;
+    if (!reservation.verificationExpiresAt) return false;
+
+    return Date.now() > reservation.verificationExpiresAt.getTime();
+  };
+
   const getCanCancel = (reservation: Reservation) => {
     if (
       reservation.status !== "pending" &&
@@ -120,6 +128,7 @@ export function Reservations() {
   const getStatusText = (reservation: Reservation) => {
     if (getCanConfirm(reservation)) return `인증하기 · ${getRemainingText(reservation)}`;
     if (reservation.consumerVerified) return "인증 완료";
+    if (getIsVerificationExpired(reservation)) return "인증 시간 만료";
     if (reservation.status === "confirmed") return "판매자 인증 대기 중";
     if (reservation.status === "pending") return "판매자 인증 대기";
     if (reservation.status === "cancelled") return "예약 취소";
@@ -147,14 +156,17 @@ export function Reservations() {
 
   const upcomingReservations = reservations.filter(
     (reservation) =>
-      reservation.status === "pending" || reservation.status === "confirmed"
+      reservation.status === "pending" ||
+      (reservation.status === "confirmed" &&
+        !getIsVerificationExpired(reservation))
   );
 
   const pastReservations = reservations.filter(
     (reservation) =>
       reservation.status === "completed" ||
       reservation.status === "noshow" ||
-      reservation.status === "cancelled"
+      reservation.status === "cancelled" ||
+      getIsVerificationExpired(reservation)
   );
 
   if (isLoading) {
@@ -188,6 +200,7 @@ export function Reservations() {
     variant: "upcoming" | "past"
   ) => {
     const canConfirm = getCanConfirm(reservation);
+    const isVerificationExpired = getIsVerificationExpired(reservation);
     const showCancelButton =
       variant === "upcoming" &&
       (reservation.status === "pending" || reservation.status === "confirmed");
@@ -213,8 +226,13 @@ export function Reservations() {
               className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
               style={{
                 backgroundColor:
-                  reservation.status === "noshow" ? "#FEE2E2" : "#F3F4F6",
-                color: reservation.status === "noshow" ? "#DC2626" : "#6B7280",
+                  reservation.status === "noshow" || isVerificationExpired
+                    ? "#FEE2E2"
+                    : "#F3F4F6",
+                color:
+                  reservation.status === "noshow" || isVerificationExpired
+                    ? "#DC2626"
+                    : "#6B7280",
               }}
             >
               {reservation.status === "completed" ? (
@@ -226,7 +244,9 @@ export function Reservations() {
                 ? "인증 완료"
                 : reservation.status === "cancelled"
                 ? "예약 취소"
-                : "NOSHOW"}
+                : reservation.status === "noshow"
+                ? "NOSHOW"
+                : "인증 시간 만료"}
             </span>
           ) : (
             <span
@@ -246,6 +266,8 @@ export function Reservations() {
             >
               {canConfirm
                 ? "인증 가능"
+                : isVerificationExpired
+                ? "인증 만료"
                 : reservation.status === "confirmed"
                 ? "인증 대기"
                 : "예약 요청"}

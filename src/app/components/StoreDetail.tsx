@@ -1,6 +1,8 @@
 ﻿import { useEffect, useState } from "react";
-import { useParams, Link } from "./routerCompat";
+import { useNavigate, useParams } from "./routerCompat";
 import { MapPin, Clock, DollarSign, Star } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/firebase";
 import { getStoreById } from "@/services/storeService";
 import { appConfig } from "@/config/appConfig";
 
@@ -21,10 +23,16 @@ interface StoreInfo {
 
 export function StoreDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(Boolean(user));
+    });
+
     const fetchStore = async () => {
       if (!id) {
         setLoading(false);
@@ -64,7 +72,21 @@ export function StoreDetail() {
     };
 
     fetchStore();
+
+    return () => unsubscribeAuth();
   }, [id]);
+
+  const handleBookingClick = () => {
+    if (!store) return;
+
+    if (!isLoggedIn) {
+      alert("예약하려면 먼저 로그인해주세요.");
+      navigate("/login");
+      return;
+    }
+
+    navigate(`/booking/${store.id}`);
+  };
 
   if (loading) {
     return (
@@ -145,14 +167,14 @@ export function StoreDetail() {
           </p>
         </div>
 
-        <Link to={`/booking/${store.id}`}>
-          <button
-            className="w-full py-4 rounded-lg text-white font-semibold text-lg shadow-md hover:shadow-lg transition-shadow"
-            style={{ backgroundColor: "#566F2F" }}
-          >
-            예약하기
-          </button>
-        </Link>
+        <button
+          type="button"
+          onClick={handleBookingClick}
+          className="w-full py-4 rounded-lg text-white font-semibold text-lg shadow-md hover:shadow-lg transition-shadow"
+          style={{ backgroundColor: "#566F2F" }}
+        >
+          예약하기
+        </button>
       </div>
     </div>
   );

@@ -195,16 +195,9 @@ export function MyPage() {
     }
   };
 
-  const clearLoginStorage = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userId");
-  };
-
   const handleLogout = async () => {
     await logoutUser();
 
-    clearLoginStorage();
     setUserData(null);
     setReservations([]);
 

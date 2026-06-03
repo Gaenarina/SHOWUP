@@ -99,7 +99,19 @@ export function SellerHome() {
     );
   };
 
-  const getStatusText = (status: string) => {
+  const getIsVerificationExpired = (reservation: Reservation) => {
+    if (reservation.consumerVerified) return false;
+    if (String(reservation.status) !== "confirmed") return false;
+    if (!reservation.verificationExpiresAt) return false;
+
+    return Date.now() > reservation.verificationExpiresAt.getTime();
+  };
+
+  const getStatusText = (reservation: Reservation) => {
+    if (getIsVerificationExpired(reservation)) return "노쇼 처리 필요";
+
+    const status = String(reservation.status);
+
     if (status === "pending") return "예약 요청";
     if (status === "confirmed") return "인증 대기";
     if (status === "completed" || status === "verified") return "완료";
@@ -115,7 +127,8 @@ export function SellerHome() {
     const status = String(reservation.status);
     return (
       (status === "pending" || status === "confirmed") &&
-      !reservation.consumerVerified
+      !reservation.consumerVerified &&
+      !getIsVerificationExpired(reservation)
     );
   });
 
@@ -124,7 +137,9 @@ export function SellerHome() {
   ).length;
 
   const noShowCount = reservations.filter(
-    (reservation) => String(reservation.status) === "noshow"
+    (reservation) =>
+      String(reservation.status) === "noshow" ||
+      getIsVerificationExpired(reservation)
   ).length;
 
   const activeDepositTotal = reservations
@@ -419,7 +434,7 @@ export function SellerHome() {
                     className="text-sm font-medium"
                     style={{ color: "#566F2F" }}
                   >
-                    {getStatusText(String(reservation.status))}
+                    {getStatusText(reservation)}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {Number(reservation.deposit ?? 0).toFixed(3)} ETH

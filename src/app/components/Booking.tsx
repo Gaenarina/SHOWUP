@@ -4,6 +4,8 @@ import { DayPicker } from "react-day-picker";
 import { ko } from "date-fns/locale";
 import { format } from "date-fns";
 import "react-day-picker/dist/style.css";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/firebase";
 import { getStoreById } from "@/services/storeService";
 import type { Store } from "@/types/store";
 import PageLoading from "./PageLoading";
@@ -28,8 +30,13 @@ export function Booking() {
     undefined
   );
   const [partySizeInput, setPartySizeInput] = useState("1");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(Boolean(user));
+    });
+
     const loadStore = async () => {
       if (!storeId) {
         setIsLoading(false);
@@ -42,6 +49,8 @@ export function Booking() {
     };
 
     loadStore();
+
+    return () => unsubscribeAuth();
   }, [storeId]);
 
   useEffect(() => {
@@ -129,6 +138,12 @@ export function Booking() {
 
   const handleConfirm = () => {
     if (!store || !selectedDate || !selectedTime) return;
+
+    if (!isLoggedIn) {
+      alert("예약하려면 먼저 로그인해주세요.");
+      navigate("/login");
+      return;
+    }
 
     const selectedSlot = storeTimeSlots.find(
       (slot) => slot.time === selectedTime

@@ -124,6 +124,14 @@ export function SellerReservations() {
     return reservation.status === "pending" || reservation.status === "confirmed";
   };
 
+  const getIsVerificationExpired = (reservation: Reservation) => {
+    if (reservation.consumerVerified) return false;
+    if (reservation.status !== "confirmed") return false;
+    if (!reservation.verificationExpiresAt) return false;
+
+    return Date.now() > reservation.verificationExpiresAt.getTime();
+  };
+
   const handleReservationClick = (reservation: Reservation) => {
     if (!getCanOpenAuth(reservation)) return;
 
@@ -158,6 +166,7 @@ export function SellerReservations() {
         abi: noShowDepositAbi,
         functionName: "sellerCancelReservation",
         args: [BigInt(selectedReservation.chainAppointmentId)],
+        gas: BigInt(300000),
       });
 
       setActionMessage("판매자 예약 취소 트랜잭션을 기다리는 중입니다.");
@@ -200,6 +209,7 @@ export function SellerReservations() {
         abi: noShowDepositAbi,
         functionName: "settleNoShow",
         args: [BigInt(reservation.chainAppointmentId)],
+        gas: BigInt(300000),
       });
 
       setActionMessage("노쇼 정산 트랜잭션을 기다리는 중입니다.");
@@ -304,6 +314,7 @@ export function SellerReservations() {
               const reputation = getCustomerReputation(reservation);
               const repColor = getReputationColor(reputation.noShowCount);
               const canOpenAuth = getCanOpenAuth(reservation);
+              const isVerificationExpired = getIsVerificationExpired(reservation);
 
               return (
                 <div
@@ -424,12 +435,16 @@ export function SellerReservations() {
                         <div
                           className="text-center py-2 rounded-lg mb-2"
                           style={{
-                            backgroundColor: "#E8F5E9",
-                            color: "#2E7D32",
+                            backgroundColor: isVerificationExpired
+                              ? "#FEE2E2"
+                              : "#E8F5E9",
+                            color: isVerificationExpired ? "#DC2626" : "#2E7D32",
                           }}
                         >
                           <p className="text-sm font-medium">
-                            인증 버튼 활성화 완료, 고객 확인 대기 중
+                            {isVerificationExpired
+                              ? "인증 시간이 만료되었습니다. 노쇼 처리가 필요합니다."
+                              : "인증 버튼 활성화 완료, 고객 확인 대기 중"}
                           </p>
                         </div>
 

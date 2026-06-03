@@ -148,6 +148,7 @@ export function DemoAdminReservations() {
         abi: noShowDepositAbi,
         functionName: "sellerCancelReservation",
         args: [BigInt(selectedReservation.chainAppointmentId)],
+        gas: BigInt(300000),
       });
 
       setActionMessage("판매자 예약 취소 트랜잭션을 기다리는 중입니다.");
@@ -190,6 +191,7 @@ export function DemoAdminReservations() {
         abi: noShowDepositAbi,
         functionName: "settleNoShow",
         args: [BigInt(reservation.chainAppointmentId)],
+        gas: BigInt(300000),
       });
 
       setActionMessage("노쇼 정산 트랜잭션을 기다리는 중입니다.");

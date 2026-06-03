@@ -66,6 +66,12 @@ export const loginUser = async (email: string, password: string) => {
 
 export const logoutUser = async () => {
   await signOut(auth);
+
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
+  }
 };
 
 export const getUserProfile = async (uid: string) => {

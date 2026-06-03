@@ -85,6 +85,7 @@ export function SellerReservationAuth() {
         abi: noShowDepositAbi,
         functionName: "confirmBySeller",
         args: [BigInt(reservation.chainAppointmentId)],
+        gas: BigInt(200000),
       });
 
       setActionMessage("판매자 인증 트랜잭션을 처리하는 중입니다.");

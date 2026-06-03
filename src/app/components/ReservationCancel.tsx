@@ -139,6 +139,7 @@ export function ReservationCancel() {
         abi: noShowDepositAbi,
         functionName: "cancelReservation",
         args: [chainAppointmentId],
+        gas: BigInt(300000),
       });
 
       if (publicClient) {

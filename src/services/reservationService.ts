@@ -5,6 +5,7 @@
   getDoc,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   Timestamp,
   updateDoc,
@@ -237,6 +238,7 @@ export const verifyConsumer = async (reservationId: string) => {
   }
 
   if (Date.now() > expiresAt.getTime()) {
+    await expireReservationIfNeeded(reservationId);
     throw new Error("인증 시간이 지나 노쇼 처리되었습니다.");
   }
 
@@ -249,24 +251,55 @@ export const verifyConsumer = async (reservationId: string) => {
 
 export const expireReservationIfNeeded = async (reservationId: string) => {
   const reservationRef = doc(db, "reservations", reservationId);
-  const snapshot = await getDoc(reservationRef);
 
-  if (!snapshot.exists()) return;
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(reservationRef);
 
-  const data = snapshot.data();
-  const expiresAt = convertDate(data.verificationExpiresAt);
+    if (!snapshot.exists()) return;
 
-  if (
-    data.verificationEnabled === true &&
-    data.consumerVerified !== true &&
-    data.status === "confirmed" &&
-    expiresAt &&
-    Date.now() > expiresAt.getTime()
-  ) {
-    await updateDoc(reservationRef, {
+    const data = snapshot.data();
+
+    if (
+      data.consumerVerified === true ||
+      data.status === "completed" ||
+      data.status === "noshow" ||
+      data.status === "cancelled"
+    ) {
+      return;
+    }
+
+    const expiresAt = convertDate(data.verificationExpiresAt);
+
+    if (!expiresAt || Date.now() <= expiresAt.getTime()) return;
+
+    const userRef = doc(db, "users", data.consumerId);
+    const userSnap = await transaction.get(userRef);
+
+    if (!userSnap.exists()) {
+      throw new Error("고객 정보를 찾을 수 없습니다.");
+    }
+
+    const userData = userSnap.data();
+    const currentNoShowCount = userData.noShowCount ?? 0;
+    const nextNoShowCount = currentNoShowCount + 1;
+    const currentScore = userData.reputationScore ?? 100;
+
+    transaction.update(reservationRef, {
+      status: "noshow",
       verificationEnabled: false,
+      verificationExpiresAt: Timestamp.fromDate(expiresAt),
+      customerReputation: {
+        title: getReputationTitle(nextNoShowCount),
+        noShowCount: nextNoShowCount,
+        attendanceRate: 100,
+      },
     });
-  }
+
+    transaction.update(userRef, {
+      noShowCount: nextNoShowCount,
+      reputationScore: Math.max(0, currentScore - 10),
+    });
+  });
 };
 
 export const expireOverdueReservations = async (reservations: Reservation[]) => {
@@ -299,8 +332,5 @@ export const markReservationAsCancelled = async (reservationId: string) => {
 };
 
 export const markReservationAsNoShow = async (reservationId: string) => {
-  await updateDoc(doc(db, "reservations", reservationId), {
-    status: "noshow",
-    verificationEnabled: false,
-  });
+  await expireReservationIfNeeded(reservationId);
 };

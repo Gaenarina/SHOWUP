@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   cancelReservation,
+  expireOverdueReservations,
   markReservationAsNoShow,
   subscribeDemoAdminReservations,
 } from "@/services/reservationService";
@@ -72,6 +73,17 @@ export function DemoAdminReservations() {
       });
     }
   }, [selectedReservationId, reservations]);
+
+  useEffect(() => {
+    if (reservations.length === 0) return;
+
+    expireOverdueReservations(reservations);
+    const timer = window.setInterval(() => {
+      expireOverdueReservations(reservations);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [reservations]);
 
   const filteredReservations = useMemo(() => {
     if (selectedStoreId === "all") {

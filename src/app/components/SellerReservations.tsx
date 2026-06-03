@@ -19,6 +19,7 @@ import { usePublicClient, useWriteContract } from "wagmi";
 import { auth } from "@/firebase";
 import {
   cancelReservation,
+  expireOverdueReservations,
   markReservationAsNoShow,
   subscribeSellerReservations,
 } from "@/services/reservationService";
@@ -105,6 +106,17 @@ export function SellerReservations() {
       });
     }
   }, [selectedReservationId, reservations]);
+
+  useEffect(() => {
+    if (reservations.length === 0) return;
+
+    expireOverdueReservations(reservations);
+    const timer = window.setInterval(() => {
+      expireOverdueReservations(reservations);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [reservations]);
 
   const getReservationDate = (date: Date) => {
     return date instanceof Date ? date : new Date(date);

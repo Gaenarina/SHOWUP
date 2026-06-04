@@ -22,6 +22,10 @@ export type SellerStoreInput = {
   sellerWalletAddress?: string;
   baseDeposit: number;
   available: boolean;
+  availableTimeSlots?: string[];
+  blockedDates?: string[];
+  blockedDateTimeSlots?: Record<string, string[]>;
+  maxReservationsPerTimeSlot?: number | null;
   allowPartySize?: boolean;
   minPartySize?: number;
   maxPartySize?: number;
@@ -29,7 +33,7 @@ export type SellerStoreInput = {
 
 export const DEMO_MASTER_UID = process.env.NEXT_PUBLIC_DEMO_MASTER_UID ?? "";
 const DEMO_MASTER_NAME =
-  process.env.NEXT_PUBLIC_DEMO_MASTER_NAME ?? "SHOWUP ?곕え 愿由ъ옄";
+  process.env.NEXT_PUBLIC_DEMO_MASTER_NAME ?? "SHOWUP 데모 관리자";
 
 export const DEMO_STORE_IDS = [
   "default-cafe-on",
@@ -43,13 +47,17 @@ const defaultStores = [
     sellerId: DEMO_MASTER_UID,
     sellerName: DEMO_MASTER_NAME,
     name: "카페 온",
-    address: "?덉꽦??以묒븰濡?123",
-    description: "議곗슜??遺꾩쐞湲곗쓽 移댄럹?낅땲??",
+    address: "안성시 중앙로 123",
+    description: "조용한 분위기의 카페입니다.",
     reservationNotice:
-      "?덉빟 ?쒓컙 10遺??꾧퉴吏 ?꾩갑?댁＜?몄슂. 痍⑥냼媛 ?꾩슂??寃쎌슦 誘몃━ ?곕씫?댁＜?몄슂.",
+      "예약 시간 10분 전까지 도착해주세요. 취소가 필요한 경우 미리 연락해주세요.",
     sellerWalletAddress: process.env.NEXT_PUBLIC_DEMO_SELLER_WALLET_ADDRESS ?? "",
     baseDeposit: 0.01,
     available: true,
+    availableTimeSlots: ["10:00", "13:00", "15:00", "17:00"],
+    blockedDates: [],
+    blockedDateTimeSlots: {},
+    maxReservationsPerTimeSlot: 1,
     storeType: "default" as const,
     allowPartySize: false,
     minPartySize: 1,
@@ -59,14 +67,18 @@ const defaultStores = [
     id: "default-study-cafe",
     sellerId: DEMO_MASTER_UID,
     sellerName: DEMO_MASTER_NAME,
-    name: "?ㅽ꽣??移댄럹 吏묒쨷",
-    address: "?덉꽦????숇줈 456",
-    description: "吏묒쨷?섍린 醫뗭? ?ㅽ꽣??怨듦컙?낅땲??",
+    name: "스터디 카페 집중",
+    address: "안성시 대학로 456",
+    description: "집중하기 좋은 스터디 공간입니다.",
     reservationNotice:
-      "?덉빟???쒓컙??留욎떠 ?낆옣?댁＜?몄슂. 議곗슜???댁슜 ?쒓컙??吏耳쒖＜?몄슂.",
+      "예약한 시간에 맞춰 입장해주세요. 조용한 이용 시간을 지켜주세요.",
     sellerWalletAddress: process.env.NEXT_PUBLIC_DEMO_SELLER_WALLET_ADDRESS ?? "",
     baseDeposit: 0.015,
     available: true,
+    availableTimeSlots: ["09:00", "11:00", "14:00", "16:00", "19:00"],
+    blockedDates: [],
+    blockedDateTimeSlots: {},
+    maxReservationsPerTimeSlot: null,
     storeType: "default" as const,
     allowPartySize: false,
     minPartySize: 1,
@@ -76,14 +88,18 @@ const defaultStores = [
     id: "default-restaurant",
     sellerId: DEMO_MASTER_UID,
     sellerName: DEMO_MASTER_NAME,
-    name: "?ㅻ뒛??誘몄떇媛",
-    address: "泥쒖븞??踰덊솕媛 789",
-    description: "?덉빟?쒕줈 ?댁쁺?섎뒗 ?앸떦?낅땲??",
+    name: "오늘의 미식가",
+    address: "천안시 번화가 789",
+    description: "예약제로 운영하는 식당입니다.",
     reservationNotice:
-      "?덉빟 ?몄썝??留욎떠 諛⑸Ц?댁＜?몄슂. 臾대떒 遺덉갭 ???몄눥濡?泥섎━?????덉뒿?덈떎.",
+      "예약 인원에 맞춰 방문해주세요. 무단 불참 시 노쇼로 처리될 수 있습니다.",
     sellerWalletAddress: process.env.NEXT_PUBLIC_DEMO_SELLER_WALLET_ADDRESS ?? "",
     baseDeposit: 0.02,
     available: true,
+    availableTimeSlots: ["11:30", "13:00", "18:00", "19:30"],
+    blockedDates: [],
+    blockedDateTimeSlots: {},
+    maxReservationsPerTimeSlot: 4,
     storeType: "default" as const,
     allowPartySize: true,
     minPartySize: 1,
@@ -93,7 +109,7 @@ const defaultStores = [
 
 export const seedDefaultStores = async () => {
   if (!DEMO_MASTER_UID) {
-    console.warn("NEXT_PUBLIC_DEMO_MASTER_UID媛 ?ㅼ젙?섏? ?딆븯?듬땲??");
+    console.warn("NEXT_PUBLIC_DEMO_MASTER_UID가 설정되지 않았습니다.");
     return;
   }
 

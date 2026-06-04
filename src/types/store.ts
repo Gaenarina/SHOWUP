@@ -12,6 +12,10 @@ export type Store = {
   baseDeposit: number;
   available: boolean;
   storeType: StoreType;
+  availableTimeSlots?: string[];
+  blockedDates?: string[];
+  blockedDateTimeSlots?: Record<string, string[]>;
+  maxReservationsPerTimeSlot?: number | null;
   allowPartySize?: boolean;
   minPartySize?: number;
   maxPartySize?: number;

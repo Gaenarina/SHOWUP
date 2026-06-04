@@ -1,6 +1,9 @@
 ﻿import { useEffect, useState, type CSSProperties } from "react";
-import { Link, useNavigate } from "./routerCompat";
+import { useNavigate } from "./routerCompat";
 import { Search, MapPin } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/firebase";
+import { logoutUser } from "@/services/authService";
 import { subscribeStores } from "@/services/storeService";
 import type { Store } from "@/types/store";
 import PageLoading from "./PageLoading";
@@ -17,22 +20,23 @@ export function Home() {
   const regions = ["전체", "서울", "경기", "안성", "천안"];
 
   useEffect(() => {
-    setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
-
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(Boolean(user));
+    });
     const unsubscribe = subscribeStores((items) => {
       setStores(items);
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      unsubscribe();
+    };
   }, []);
 
-  const handleAuthClick = () => {
+  const handleAuthClick = async () => {
     if (isLoggedIn) {
-      localStorage.removeItem("isLoggedIn");
-      localStorage.removeItem("userRole");
-      localStorage.removeItem("userId");
-
+      await logoutUser();
       setIsLoggedIn(false);
       navigate("/");
     } else {
@@ -134,10 +138,33 @@ export function Home() {
           </p>
         ) : (
           filteredStores.map((store) => (
-            <Link
+            <div
               key={store.id}
-              to={`/booking/${store.id}`}
-              className="block"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (!isLoggedIn) {
+                  alert("예약하려면 먼저 로그인해주세요.");
+                  navigate("/login");
+                  return;
+                }
+
+                navigate(`/booking/${store.id}`);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+
+                event.preventDefault();
+
+                if (!isLoggedIn) {
+                  alert("예약하려면 먼저 로그인해주세요.");
+                  navigate("/login");
+                  return;
+                }
+
+                navigate(`/booking/${store.id}`);
+              }}
+              className="block w-full text-left"
             >
               <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-2">
@@ -198,7 +225,7 @@ export function Home() {
                   </button>
                 </div>
               </div>
-            </Link>
+            </div>
           ))
         )}
       </div>
